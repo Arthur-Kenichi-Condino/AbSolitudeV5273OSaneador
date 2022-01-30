@@ -59,6 +59,7 @@
     <Compile Include="Assets\AKCondinoO\Gameplayer.cs" />
     <Compile Include="Assets\AKCondinoO\Voxels\VoxelSystem.cs" />
     <Compile Include="Assets\AKCondinoO\Core.cs" />
+    <Compile Include="Assets\AKCondinoO\Voxels\Biomes\Biome.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\AKCondinoO\Voxels\VoxelTerrain.shader" />
@@ -654,6 +655,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="Assembly-CSharp-firstpass.csproj">
+      <Project>{DC2EC595-3C37-D2CA-005C-4F7183BA8F44}</Project>
+      <Name>Assembly-CSharp-firstpass</Name>
+    </ProjectReference>
     <ProjectReference Include="Unity.VSCode.Editor.csproj">
       <Project>{87C46ED7-FA0B-A7DF-142C-7CF5F13A2B23}</Project>
       <Name>Unity.VSCode.Editor</Name>

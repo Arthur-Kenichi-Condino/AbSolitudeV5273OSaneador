@@ -1,3 +1,4 @@
+using AKCondinoO.Voxels.Biomes;
 using paulbourke.MarchingCubes;
 using System;
 using System.Collections;
@@ -219,12 +220,14 @@ namespace AKCondinoO.Voxels{
           }
          }
         }
+        internal static readonly Biome biome=new Biome();
         internal VoxelTerrain[]terrain;
         internal readonly VoxelTerrain.MarchingCubesMultithreaded[]marchingCubesBGThreads=new VoxelTerrain.MarchingCubesMultithreaded[Environment.ProcessorCount];
         #region Awake
         void Awake(){if(Singleton==null){Singleton=this;}else{DestroyImmediate(this);return;}
          Core.Singleton.OnDestroyingCoreEvent+=OnDestroyingCoreEvent;
          AtlasHelper.GetAtlasData(PrefabVoxelTerrain.GetComponent<MeshRenderer>().sharedMaterial);
+         biome.Seed=0;
          VoxelTerrain.MarchingCubesMultithreaded.Stop=false;for(int i=0;i<marchingCubesBGThreads.Length;++i){marchingCubesBGThreads[i]=new VoxelTerrain.MarchingCubesMultithreaded();}
          StartCoroutine(ProceduralGenerationFollowUpCoroutine());
         }

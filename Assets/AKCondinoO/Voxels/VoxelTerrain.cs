@@ -130,6 +130,8 @@ namespace AKCondinoO.Voxels{
         internal class MarchingCubesMultithreaded:BaseMultithreaded<MarchingCubesBackgroundContainer>{
          readonly Voxel[]voxels=new Voxel[VoxelsPerChunk];
          readonly Voxel[]polygonCell=new Voxel[8];
+         readonly double[][][]noiseForHeightCache=new double[biome.heightsCacheLength][][];
+         readonly MaterialId[][][]materialIdPerHeightNoiseCache=new MaterialId[biome.heightsCacheLength][][];
          readonly Voxel[][][]voxelsCache1=new Voxel[3][][]{new Voxel[1][]{new Voxel[4],},new Voxel[Depth][],new Voxel[FlattenOffset][],};
          readonly Voxel[]tmpvxl=new Voxel[6];
          readonly Voxel[][]voxelsCache2=new Voxel[3][]{new Voxel[1],new Voxel[Depth],new Voxel[FlattenOffset],};
@@ -145,11 +147,23 @@ namespace AKCondinoO.Voxels{
          readonly Vector3[]verPos=new Vector3[3];
          readonly Dictionary<Vector3,List<Vector2>>vertexUV=new Dictionary<Vector3,List<Vector2>>();
          internal MarchingCubesMultithreaded(){
+          for(int i=0;i<biome.heightsCacheLength;++i){
+           noiseForHeightCache[i]=new double[9][];
+           materialIdPerHeightNoiseCache[i]=new MaterialId[9][];
+          }
           for(int i=0;i<voxelsCache1[2].Length;++i){voxelsCache1[2][i]=new Voxel[4];if(i<voxelsCache1[1].Length){voxelsCache1[1][i]=new Voxel[4];}}
           for(int i=0;i<verticesCache[2].Length;++i){verticesCache[2][i]=new Vector3[4];if(i<verticesCache[1].Length){verticesCache[1][i]=new Vector3[4];}}
          }
          protected override void Cleanup(){
           Array.Clear(voxels,0,voxels.Length);
+          for(int i=0;i<biome.heightsCacheLength;++i){
+           for(int j=0;j<noiseForHeightCache[i].Length;++j){
+            if(noiseForHeightCache[i][j]!=null)Array.Clear(noiseForHeightCache[i][j],0,noiseForHeightCache[i][j].Length);
+           }
+           for(int j=0;j<materialIdPerHeightNoiseCache[i].Length;++j){
+            if(materialIdPerHeightNoiseCache[i][j]!=null)Array.Clear(materialIdPerHeightNoiseCache[i][j],0,materialIdPerHeightNoiseCache[i][j].Length);
+           }
+          }
           for(int i=0;i<voxelsCache1[0].Length;++i){Array.Clear(voxelsCache1[0][i],0,voxelsCache1[0][i].Length);}
           for(int i=0;i<voxelsCache1[1].Length;++i){Array.Clear(voxelsCache1[1][i],0,voxelsCache1[1][i].Length);}
           for(int i=0;i<voxelsCache1[2].Length;++i){Array.Clear(voxelsCache1[2][i],0,voxelsCache1[2][i].Length);}
@@ -211,7 +225,11 @@ namespace AKCondinoO.Voxels{
              }else{
               cache2=true;
              }
-             polygonCell[corner]=Voxel.Air;
+             int oftIdx2=GetoftIdx(cCoord2-container.cCoord);
+             //  pegar valor do bioma:
+             Vector3Int noiseInput=vCoord2;noiseInput.x+=cnkRgn2.x;
+                                           noiseInput.z+=cnkRgn2.y;
+             VoxelSystem.biome.Setvxl(noiseInput,noiseForHeightCache,materialIdPerHeightNoiseCache,oftIdx2,vCoord2.z+vCoord2.x*Depth,ref polygonCell[corner]);
             }
             if(polygonCell[corner].Normal==Vector3.zero){
              //  calcular normal:
@@ -222,12 +240,24 @@ namespace AKCondinoO.Voxels{
                  tmpIdx++;           vCoord3=vCoord2;                        vCoord3.z++;                                                                                                                                                                      SetpolygonCellNormalSettmpvxl();
                  tmpIdx++;           vCoord3=vCoord2;                        vCoord3.z--;if(cache2&&vCoord2.z>1&&vCoord2.x>1&&vCoord2.y>1&&voxelsCache2[0][0].IsCreated)                        tmpvxl[tmpIdx]=voxelsCache2[0][0];                        else SetpolygonCellNormalSettmpvxl();
              void SetpolygonCellNormalSettmpvxl(){
+              Vector2Int cnkRgn3=cnkRgn2;
+              Vector2Int cCoord3=cCoord2;
               if(vCoord3.y<=0){
                tmpvxl[tmpIdx]=Voxel.Bedrock;
               }else if(vCoord3.y>=Height){
                tmpvxl[tmpIdx]=Voxel.Air;
               }else{
-               tmpvxl[tmpIdx]=Voxel.Air;
+               if(vCoord3.x<0||vCoord3.x>=Width||
+                  vCoord3.z<0||vCoord3.z>=Depth
+               ){
+                ValidateCoord(ref cnkRgn3,ref vCoord3);
+                cCoord3=cnkRgnTocCoord(cnkRgn3);
+               }
+               int oftIdx3=GetoftIdx(cCoord3-container.cCoord);
+               //  pegar valor do bioma:
+               Vector3Int noiseInput=vCoord3;noiseInput.x+=cnkRgn3.x;
+                                             noiseInput.z+=cnkRgn3.y;
+               VoxelSystem.biome.Setvxl(noiseInput,noiseForHeightCache,materialIdPerHeightNoiseCache,oftIdx3,vCoord3.z+vCoord3.x*Depth,ref tmpvxl[tmpIdx]);
               }
              }
              Vector3 polygonCellNormal=new Vector3{
@@ -252,7 +282,7 @@ namespace AKCondinoO.Voxels{
         }
         #if UNITY_EDITOR
             void OnDrawGizmos(){
-             Logger.DrawBounds(worldBounds,Color.gray);
+             //Logger.DrawBounds(worldBounds,Color.gray);
             }
         #endif
     }

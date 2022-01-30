@@ -79,6 +79,7 @@ namespace AKCondinoO.Voxels{
         #endregion
         bool OnBuilt(){
          if(marchingCubesBG.IsCompleted(VoxelSystem.Singleton.marchingCubesBGThreads[0].IsRunning)){
+          mesh.Clear(false);
           bool resize;
           if(resize=marchingCubesBG.TempVer.Length>mesh.vertexCount){
            mesh.SetVertexBufferParams(marchingCubesBG.TempVer.Length,layout);
@@ -90,7 +91,6 @@ namespace AKCondinoO.Voxels{
           mesh.SetIndexBufferData(marchingCubesBG.TempTri.AsArray(),0,0,marchingCubesBG.TempTri.Length,meshFlags);
           mesh.subMeshCount=1;
           mesh.SetSubMesh(0,new SubMeshDescriptor(0,marchingCubesBG.TempTri.Length){firstVertex=0,vertexCount=marchingCubesBG.TempVer.Length},meshFlags);
-
           mesh.OptimizeIndexBuffers();
           mesh.OptimizeReorderVertexBuffer();
           return true;
@@ -128,6 +128,7 @@ namespace AKCondinoO.Voxels{
          internal NativeList<UInt32>TempTri;
         }
         internal class MarchingCubesMultithreaded:BaseMultithreaded<MarchingCubesBackgroundContainer>{
+         internal static Vector2 emptyUV{get;}=new Vector2(-1,-1);
          readonly Voxel[]voxels=new Voxel[VoxelsPerChunk];
          readonly Voxel[]polygonCell=new Voxel[8];
          readonly double[][][]noiseForHeightCache=new double[biome.heightsCacheLength][][];
@@ -146,6 +147,9 @@ namespace AKCondinoO.Voxels{
          readonly int[]idx=new int[3];
          readonly Vector3[]verPos=new Vector3[3];
          readonly Dictionary<Vector3,List<Vector2>>vertexUV=new Dictionary<Vector3,List<Vector2>>();
+         readonly Dictionary<Vector2,int>vertexUVCounted=new Dictionary<Vector2,int>();
+         readonly SortedDictionary<(int,float,float),Vector2>vertexUVSorted=new SortedDictionary<(int,float,float),Vector2>();
+         readonly Dictionary<int,int>weights=new Dictionary<int,int>(4);
          internal MarchingCubesMultithreaded(){
           for(int i=0;i<biome.heightsCacheLength;++i){
            noiseForHeightCache[i]=new double[9][];
@@ -278,6 +282,67 @@ namespace AKCondinoO.Voxels{
            }
            MarchingCubes(polygonCell,vCoord1,vertices,verticesCache,materials,normals,density,vertex,material,distance,idx,verPos,posOffset,ref vertexCount,container.TempVer,container.TempTri,vertexUV);
           }}}
+          for(int i=0;i<container.TempVer.Length/3;i++){
+           idx[0]=i*3;
+           idx[1]=i*3+1;
+           idx[2]=i*3+2;
+           for(int j=0;j<3;j++){
+            var vertexUVList=vertexUV[verPos[j]=container.TempVer[idx[j]].pos];
+            vertexUVCounted.Clear();
+            foreach(var uv in vertexUVList){
+             if(!vertexUVCounted.ContainsKey(uv)){
+              vertexUVCounted.Add(uv,1);
+             }else{
+              vertexUVCounted[uv]++;
+             }
+            }
+            vertexUVSorted.Clear();
+            foreach(var kvp in vertexUVCounted){
+             vertexUVSorted.Add((kvp.Value,kvp.Key.x,kvp.Key.y),kvp.Key);
+            }
+            weights.Clear();
+            int total=0;
+            Vector2 uv0=container.TempVer[idx[j]].texCoord0;
+            foreach(var materialId in vertexUVSorted){
+             Vector2 uv=materialId.Value;
+             bool add;
+             if(uv0==uv){
+              total+=weights[0]=materialId.Key.Item1;
+             }else if(((add=container.TempVer[idx[j]].texCoord1==emptyUV)&&container.TempVer[idx[j]].texCoord2!=uv&&container.TempVer[idx[j]].texCoord3!=uv)||container.TempVer[idx[j]].texCoord1==uv){
+              if(add){
+               var v1=container.TempVer[idx[0]];v1.texCoord1=uv;container.TempVer[idx[0]]=v1;
+                   v1=container.TempVer[idx[1]];v1.texCoord1=uv;container.TempVer[idx[1]]=v1;
+                   v1=container.TempVer[idx[2]];v1.texCoord1=uv;container.TempVer[idx[2]]=v1;
+              }
+              total+=weights[1]=materialId.Key.Item1;
+             }else if(((add=container.TempVer[idx[j]].texCoord2==emptyUV)&&container.TempVer[idx[j]].texCoord3!=uv                                         )||container.TempVer[idx[j]].texCoord2==uv){
+              if(add){
+               var v1=container.TempVer[idx[0]];v1.texCoord2=uv;container.TempVer[idx[0]]=v1;
+                   v1=container.TempVer[idx[1]];v1.texCoord2=uv;container.TempVer[idx[1]]=v1;
+                   v1=container.TempVer[idx[2]];v1.texCoord2=uv;container.TempVer[idx[2]]=v1;
+              }
+              total+=weights[2]=materialId.Key.Item1;
+             }else if(((add=container.TempVer[idx[j]].texCoord3==emptyUV)                                                                                  )||container.TempVer[idx[j]].texCoord3==uv){
+              if(add){
+               var v1=container.TempVer[idx[0]];v1.texCoord3=uv;container.TempVer[idx[0]]=v1;
+                   v1=container.TempVer[idx[1]];v1.texCoord3=uv;container.TempVer[idx[1]]=v1;
+                   v1=container.TempVer[idx[2]];v1.texCoord3=uv;container.TempVer[idx[2]]=v1;
+              }
+              total+=weights[3]=materialId.Key.Item1;
+             }
+            }
+            if(weights.Count>1){
+             var v2=container.TempVer[idx[j]];
+             Color col=v2.color;
+                                        col.r=(weights[0]/(float)total);
+             if(weights.ContainsKey(1)){col.g=(weights[1]/(float)total);}
+             if(weights.ContainsKey(2)){col.b=(weights[2]/(float)total);}
+             if(weights.ContainsKey(3)){col.a=(weights[3]/(float)total);}
+             v2.color=col;
+             container.TempVer[idx[j]]=v2;
+            }
+           }
+          }
          }
         }
         #if UNITY_EDITOR

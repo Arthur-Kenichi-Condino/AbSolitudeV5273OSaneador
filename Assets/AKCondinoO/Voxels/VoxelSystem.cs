@@ -423,26 +423,53 @@ namespace AKCondinoO.Voxels{
          goto Loop;
         }
         internal static readonly Dictionary<VoxelTerrain,object>terrainSynchronization=new Dictionary<VoxelTerrain,object>();
+        static int GetcnkIdxFromFileLine(string line,out int cnkIdx){
+         int cnkIdxStringStart=line.IndexOf("cnkIdx=")+7;
+         int cnkIdxStringEnd=line.IndexOf(" ,",cnkIdxStringStart);
+         int cnkIdxStringLength=cnkIdxStringEnd-cnkIdxStringStart;
+         cnkIdx=int.Parse(line.Substring(cnkIdxStringStart,cnkIdxStringLength));
+         return cnkIdxStringEnd;
+        }
+        static void GetNextTerrainEditDataFromFileLine(string line,ref int vCoordStringStart,out Vector3Int vCoord,out double density,out MaterialId materialId){
+         vCoordStringStart+=8;
+         int vCoordStringEnd=line.IndexOf(")",vCoordStringStart);
+         string vCoordString=line.Substring(vCoordStringStart,vCoordStringEnd-vCoordStringStart);
+         int xStringStart=0;
+         int xStringEnd=vCoordString.IndexOf(", ",xStringStart);
+         int x=int.Parse(vCoordString.Substring(xStringStart,xStringEnd-xStringStart));
+         int yStringStart=xStringEnd+2;
+         int yStringEnd=vCoordString.IndexOf(", ",yStringStart);
+         int y=int.Parse(vCoordString.Substring(yStringStart,yStringEnd-yStringStart));
+         int zStringStart=yStringEnd+2;
+         int z=int.Parse(vCoordString.Substring(zStringStart));
+         vCoord=new Vector3Int(x,y,z);
+         //Logger.Debug("WriteFile merging vCoord:"+vCoord);
+         int densityStringStart=vCoordStringEnd;
+         densityStringStart=line.IndexOf("density=",densityStringStart);
+         densityStringStart+=8;
+         int densityStringEnd=line.IndexOf(", ",densityStringStart);
+         density=double.Parse(line.Substring(densityStringStart,densityStringEnd-densityStringStart));
+         //Logger.Debug("WriteFile merging density:"+density);
+         int materialIdStringStart=densityStringEnd+13;
+         int materialIdStringEnd=line.IndexOf(")",materialIdStringStart);
+         materialId=(MaterialId)Enum.Parse(typeof(MaterialId),line.Substring(materialIdStringStart,materialIdStringEnd-materialIdStringStart));
+         //Logger.Debug("WriteFile merging materialId:"+materialId);
+        }
         static void WriteFile(FileStream fileStream,StreamWriter fileStreamWriter,StreamReader fileStreamReader,StringBuilder stringBuilder,Dictionary<int,Dictionary<Vector3Int,(double density,MaterialId materialId)>>data){         
          stringBuilder.Clear();
          fileStream.Position=0L;
          fileStreamReader.DiscardBufferedData();
          string line;
          while((line=fileStreamReader.ReadLine())!=null){
-          int cnkIdxStringStart=line.IndexOf("cnkIdx=")+7;
-          int cnkIdxStringEnd=line.IndexOf(" ,",cnkIdxStringStart);
-          int cnkIdxStringLength=cnkIdxStringEnd-cnkIdxStringStart;
-          int cnkIdx=int.Parse(line.Substring(cnkIdxStringStart,cnkIdxStringLength));
+          int cnkIdxStringEnd=GetcnkIdxFromFileLine(line,out int cnkIdx);
           if(data.ContainsKey(cnkIdx)){
-           Logger.Debug("WriteFile merge edits for cnkIdx:"+cnkIdx);
+           //Logger.Debug("WriteFile merge edits for cnkIdx:"+cnkIdx);
            int vCoordStringStart=cnkIdxStringEnd+2;
            while((vCoordStringStart=line.IndexOf("vCoord=",vCoordStringStart))>=0){
-            vCoordStringStart+=8;
-            int vCoordStringEnd=line.IndexOf(")",vCoordStringStart)-1;
-            string vCoordString=line.Substring(vCoordStringStart,vCoordStringEnd-vCoordStringStart);
-            int xStringStart=0;
-            int xStringEnd=vCoordString.IndexOf(", ",xStringStart);
-            int x=int.Parse(vCoordString.Substring(xStringStart,xStringEnd-xStringStart));
+            GetNextTerrainEditDataFromFileLine(line,ref vCoordStringStart,out Vector3Int vCoord,out double density,out MaterialId materialId);
+            if(!data[cnkIdx].ContainsKey(vCoord)){
+             data[cnkIdx].Add(vCoord,(density,materialId));
+            }
            }
           }else{
            stringBuilder.AppendLine(line);
@@ -494,69 +521,7 @@ namespace AKCondinoO.Voxels{
            Logger.Debug("container.requests.Count:"+container.requests.Count);
            container.dirty.Clear();
            while(container.requests.Count>0){var editRequest=container.requests.Dequeue();
-           }
-
-           saveData.Add(13,new Dictionary<Vector3Int,(double density,MaterialId materialId)>());
-           //saveData.Add(15,new Dictionary<Vector3Int,(double density,MaterialId materialId)>());
-           //saveData.Add(22,new Dictionary<Vector3Int,(double density,MaterialId materialId)>());
-           saveData[13].Add(new Vector3Int(11,11,11),(070d,MaterialId.Dirt));
-           //saveData[10].Add(new Vector3Int(15,11,21),(175d,MaterialId.Dirt));
-           //saveData[15].Add(new Vector3Int(12,11,11),(060d,MaterialId.Bedrock));
-           //string fileData="";
-           //foreach(var kvp1 in saveData){
-           // string line="{ cnkIdx="+kvp1.Key+" , { ";
-           // foreach(var kvp2 in kvp1.Value){
-           //  line+="{ vCoord="+kvp2.Key+" , (density="+kvp2.Value.density+", materialId="+kvp2.Value.materialId+") }, ";
-           // }
-           // line+="} }, \n";
-           // Debug.Log(line);
-           // fileData+=line;
-           //}
-           //Debug.Log(fileData);
-           //int lastLineEndIndex=(-1);
-           //int currentLineIndex=( 0);
-           //while((lastLineEndIndex+1)<fileData.Length&&(lastLineEndIndex=fileData.IndexOf("\n",lastLineEndIndex==-1?0:(lastLineEndIndex+1)))>=0){
-            
-           // int s0=fileData.IndexOf("cnkIdx=",currentLineIndex)+7;
-           // int e0=fileData.IndexOf(" ",s0+1);
-           // int l0=e0-s0;
-           // int cnkIdx=int.Parse(fileData.Substring(s0,l0));
-           // Debug.Log("cnkIdx:"+cnkIdx);
-           // int s1=e0+1;
-           // while((s1=fileData.IndexOf("vCoord=",s1,lastLineEndIndex-s1))>=0){
-           //  //Debug.Log(s1);
-           //  s1+=7;
-           //  int e1=fileData.IndexOf(")",s1+1);
-           //  int l1=e1-(s1+1);
-           //  var stringvCoord=fileData.Substring(s1+1,l1);
-           //  int nextSubstringStart;
-           //  var x=stringvCoord.Substring(0,nextSubstringStart=stringvCoord.IndexOf(", "));
-           //  Debug.Log("x:"+x+"...");
-           //  nextSubstringStart+=2;
-           //  int nextSubstringStart1;
-           //  var y=stringvCoord.Substring(nextSubstringStart,(nextSubstringStart1=stringvCoord.IndexOf(", ",nextSubstringStart))-nextSubstringStart);
-           //  Debug.Log("y:"+y+"...");
-           //  nextSubstringStart1+=2;
-           //  var z=stringvCoord.Substring(nextSubstringStart1);
-           //  Debug.Log("z:"+z+"...");
-           //  //var vCoord=fileData.Substring(s1+1,l1);
-           //  //Debug.Log("vCoord:"+vCoord);
-           //  int s2=e1+1;
-           //  s2=fileData.IndexOf("density=",s2,lastLineEndIndex-s2);
-           //  //Debug.Log(s2);
-           //  s2+=8;
-           //  int s3;
-           //  var stringDensity=fileData.Substring(s2,(s3=fileData.IndexOf(",",s2))-s2);
-           //  Debug.Log("stringDensity:"+stringDensity);
-           //  s3+=13;
-           //  var stringMaterial=fileData.Substring(s3,fileData.IndexOf(")",s3)-s3);
-           //  Debug.Log("stringMaterial:"+stringMaterial);
-           // }
-
-           // Debug.Log(lastLineEndIndex);
-           // currentLineIndex=lastLineEndIndex+1;
-           //}
-           
+           }           
            foreach(var syn in VoxelSystem.terrainSynchronization)Monitor.Enter(syn.Value);
            try{
             WriteFile(editsFileStream,editsFileStreamWriter,editsFileStreamReader,editsStringBuilder,saveData);

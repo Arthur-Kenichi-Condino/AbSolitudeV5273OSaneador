@@ -8,6 +8,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using Unity.Collections;
 using UnityEngine;
 using static AKCondinoO.Voxels.VoxelTerrain.MarchingCubesBackgroundContainer;
@@ -432,7 +433,20 @@ namespace AKCondinoO.Voxels{
           int cnkIdxStringEnd=line.IndexOf(" ,",cnkIdxStringStart);
           int cnkIdxStringLength=cnkIdxStringEnd-cnkIdxStringStart;
           int cnkIdx=int.Parse(line.Substring(cnkIdxStringStart,cnkIdxStringLength));
-          Logger.Debug("WriteFile merge edits for cnkIdx:"+cnkIdx);
+          if(data.ContainsKey(cnkIdx)){
+           Logger.Debug("WriteFile merge edits for cnkIdx:"+cnkIdx);
+           int vCoordStringStart=cnkIdxStringEnd+2;
+           while((vCoordStringStart=line.IndexOf("vCoord=",vCoordStringStart))>=0){
+            vCoordStringStart+=8;
+            int vCoordStringEnd=line.IndexOf(")",vCoordStringStart)-1;
+            string vCoordString=line.Substring(vCoordStringStart,vCoordStringEnd-vCoordStringStart);
+            int xStringStart=0;
+            int xStringEnd=vCoordString.IndexOf(", ",xStringStart);
+            int x=int.Parse(vCoordString.Substring(xStringStart,xStringEnd-xStringStart));
+           }
+          }else{
+           stringBuilder.AppendLine(line);
+          }
          }
          foreach(var cnkIdxEditsPair in data){
           stringBuilder.AppendFormat("{{ cnkIdx={0} , {{ ",cnkIdxEditsPair.Key);
@@ -482,14 +496,12 @@ namespace AKCondinoO.Voxels{
            while(container.requests.Count>0){var editRequest=container.requests.Dequeue();
            }
 
-           saveData.Add(10,new Dictionary<Vector3Int,(double density,MaterialId materialId)>());
-           saveData.Add(15,new Dictionary<Vector3Int,(double density,MaterialId materialId)>());
-           saveData.Add(22,new Dictionary<Vector3Int,(double density,MaterialId materialId)>());
-           saveData[10].Add(new Vector3Int(10,11,11),(060d,MaterialId.Bedrock));
-           saveData[10].Add(new Vector3Int(15,11,21),(175d,MaterialId.Dirt));
-           saveData[15].Add(new Vector3Int(12,11,11),(060d,MaterialId.Bedrock));
-           WriteFile(editsFileStream,editsFileStreamWriter,editsFileStreamReader,editsStringBuilder,saveData);
-           WriteFile(editsFileStream,editsFileStreamWriter,editsFileStreamReader,editsStringBuilder,saveData);
+           saveData.Add(13,new Dictionary<Vector3Int,(double density,MaterialId materialId)>());
+           //saveData.Add(15,new Dictionary<Vector3Int,(double density,MaterialId materialId)>());
+           //saveData.Add(22,new Dictionary<Vector3Int,(double density,MaterialId materialId)>());
+           saveData[13].Add(new Vector3Int(11,11,11),(070d,MaterialId.Dirt));
+           //saveData[10].Add(new Vector3Int(15,11,21),(175d,MaterialId.Dirt));
+           //saveData[15].Add(new Vector3Int(12,11,11),(060d,MaterialId.Bedrock));
            //string fileData="";
            //foreach(var kvp1 in saveData){
            // string line="{ cnkIdx="+kvp1.Key+" , { ";
@@ -544,7 +556,15 @@ namespace AKCondinoO.Voxels{
            // Debug.Log(lastLineEndIndex);
            // currentLineIndex=lastLineEndIndex+1;
            //}
-
+           
+           foreach(var syn in VoxelSystem.terrainSynchronization)Monitor.Enter(syn.Value);
+           try{
+            WriteFile(editsFileStream,editsFileStreamWriter,editsFileStreamReader,editsStringBuilder,saveData);
+           }catch{
+            throw;
+           }finally{
+            foreach(var syn in VoxelSystem.terrainSynchronization)Monitor.Exit(syn.Value);
+           }
           }
          }
         }

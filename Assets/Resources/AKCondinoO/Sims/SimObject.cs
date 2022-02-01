@@ -9,7 +9,7 @@ namespace AKCondinoO.Sims{
         internal LinkedListNode<SimObject>pooled;       
         internal virtual void OnActivated(bool load){
         }
-        internal void OnPooling(){
+        internal void OnPoolRequest(){
          poolRequested=true;
         }
         internal void OnExitSave(List<(Type simType,ulong number)>unplacedIds){
@@ -19,7 +19,7 @@ namespace AKCondinoO.Sims{
         internal virtual void ManualUpdate(){
          //Logger.Debug("ManualUpdate():"+id);
          if(poolRequested){
-             poolRequested=false;
+            poolRequested=false;
              SimObjectSpawner.Singleton.DespawnQueue.Enqueue(this);
          }
         }

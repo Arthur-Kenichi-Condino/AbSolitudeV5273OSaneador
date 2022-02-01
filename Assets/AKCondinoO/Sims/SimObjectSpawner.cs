@@ -43,15 +43,15 @@ namespace AKCondinoO.Sims{
            for(int i=0;i<DEBUG_CREATE_SIM_OBJECT_AMOUNT;++i){
             spawnData.at.Add((DEBUG_CREATE_SIM_OBJECT_POSITION,DEBUG_CREATE_SIM_OBJECT_ROTATION,DEBUG_CREATE_SIM_OBJECT_SCALE,type,null));
            }
-           DEBUG_CREATE_SIM_OBJECT=null;
+            DEBUG_CREATE_SIM_OBJECT=null;
            spawnData.dequeued=false;
            SpawnQueue.Enqueue(spawnData);
           }
          }
          if(DEBUG_POOL_ALL_SIM_OBJECTS){
-          DEBUG_POOL_ALL_SIM_OBJECTS=false;
+            DEBUG_POOL_ALL_SIM_OBJECTS=false;
           foreach(var a in active){var sO=a.Value;
-           sO.OnPooling();
+           sO.OnPoolRequest();
           }
          }
          persistentDataTimeToLiveIds.Clear();

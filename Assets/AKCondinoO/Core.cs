@@ -1,12 +1,18 @@
 using System;
 using System.Collections.Concurrent;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 namespace AKCondinoO{
     internal class Core:MonoBehaviour{internal static Core Singleton;
         internal static int ThreadCount;
+        internal static readonly string saveLocation=Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData).Replace("\\","/")+"/AbSolitudeV5273OSaneador/";
+        internal static string saveName="terra";
+        internal static string savePath;
         void Awake(){if(Singleton==null){Singleton=this;}else{DestroyImmediate(this);return;}
+         savePath=string.Format("{0}{1}/",saveLocation,saveName);
+         Directory.CreateDirectory(savePath);
         }
         internal event EventHandler OnDestroyingCoreEvent;
         internal class OnDestroyingCoreEventArgs:EventArgs{
@@ -189,7 +195,7 @@ namespace AKCondinoO{
     /// </summary>
     /// <returns></returns>
     public override string ToString(){
-    return String.Format("[{0}_{1}_{2}]",x,y,z);
+    return String.Format("({0},{1},{2})",x,y,z);
     }
     /// <summary>
     /// Automatic conversion from SerializableVector3 to Vector3
@@ -238,7 +244,7 @@ namespace AKCondinoO{
     /// </summary>
     /// <returns></returns>
     public override string ToString(){
-    return String.Format("[{0}_{1}_{2}]Int",x,y,z);
+    return String.Format("({0},{1},{2})",x,y,z);
     }
     /// <summary>
     /// Automatic conversion from SerializableVector3Int to Vector3Int
@@ -298,7 +304,7 @@ namespace AKCondinoO{
     /// </summary>
     /// <returns></returns>
     public override string ToString(){
-    return String.Format("[{0}_{1}_{2}_{3}]",x,y,z,w);
+    return String.Format("({0},{1},{2},{3})",x,y,z,w);
     }
     /// <summary>
     /// Automatic conversion from SerializableQuaternion to Quaternion

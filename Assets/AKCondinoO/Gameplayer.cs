@@ -12,11 +12,11 @@ namespace AKCondinoO{
         void Update(){
          transform.position=Camera.main.transform.position;
          if(transform.hasChanged){
-          transform.hasChanged=false;
+            transform.hasChanged=false;
           pendingCoordinatesUpdate=true;
          }
          if(pendingCoordinatesUpdate){
-          pendingCoordinatesUpdate=false;
+            pendingCoordinatesUpdate=false;
           cCoord_Pre=cCoord;
           cCoord=vecPosTocCoord(transform.position);
           if(cCoord!=cCoord_Pre){

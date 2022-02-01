@@ -5,7 +5,9 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
+using System.Text;
 using Unity.Collections;
 using UnityEngine;
 using static AKCondinoO.Voxels.VoxelTerrain.MarchingCubesBackgroundContainer;
@@ -223,12 +225,16 @@ namespace AKCondinoO.Voxels{
         internal static readonly Biome biome=new Biome();
         internal VoxelTerrain[]terrain;
         internal readonly VoxelTerrain.MarchingCubesMultithreaded[]marchingCubesBGThreads=new VoxelTerrain.MarchingCubesMultithreaded[Environment.ProcessorCount];
+        internal static string editsFile;
         #region Awake
         void Awake(){if(Singleton==null){Singleton=this;}else{DestroyImmediate(this);return;}
          Core.Singleton.OnDestroyingCoreEvent+=OnDestroyingCoreEvent;
+         editsFile=string.Format("{0}{1}",Core.savePath,"edits.txt");
+         new FileStream(VoxelSystem.editsFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite).Dispose();
          AtlasHelper.GetAtlasData(PrefabVoxelTerrain.GetComponent<MeshRenderer>().sharedMaterial);
          biome.Seed=0;
          VoxelTerrain.MarchingCubesMultithreaded.Stop=false;for(int i=0;i<marchingCubesBGThreads.Length;++i){marchingCubesBGThreads[i]=new VoxelTerrain.MarchingCubesMultithreaded();}
+         TerrainEditingMultithreaded.Stop=false;terrainEditingBGThread=new TerrainEditingMultithreaded();
          StartCoroutine(ProceduralGenerationFollowUpCoroutine());
         }
         #endregion
@@ -241,15 +247,42 @@ namespace AKCondinoO.Voxels{
          if(VoxelTerrain.MarchingCubesMultithreaded.Clear()!=0){
           Logger.Error("terrain Marching Cubes tasks will stop with pending work");
          }
-         VoxelTerrain.MarchingCubesMultithreaded.Stop=true;for(int i=0;i<marchingCubesBGThreads.Length;++i){marchingCubesBGThreads[i].Wait();}
+         VoxelTerrain.MarchingCubesMultithreaded.Stop=true;for(int i=0;i<marchingCubesBGThreads.Length;++i){marchingCubesBGThreads[i].Wait();
+          marchingCubesBGThreads[i].editsFileStream      .Dispose();
+          marchingCubesBGThreads[i].editsFileStreamReader.Dispose();
+         }
+         TerrainEditingMultithreaded.Stop=true;terrainEditingBGThread.Wait();
+         terrainEditingBGThread.editsFileStreamWriter.Dispose();
+         terrainEditingBGThread.editsFileStreamReader.Dispose();
          if(Singleton==this){Singleton=null;}
         }
+        void EditTerrain(Vector3 at,TerrainEditingBackgroundContainer.EditMode mode,Vector3Int size,double density,MaterialId material,int smoothness){
+         terrainEditingRequests.Enqueue(
+          new TerrainEditRequest{
+           center=at,
+           mode=mode,
+           size=size,
+           density=density,
+           material=material,
+           smoothness=smoothness,
+          }
+         );
+        }
+        [SerializeField]bool                                       DEBUG_EDIT=false;
+        [SerializeField]Vector3                                    DEBUG_EDIT_AT=new Vector3Int(0,40,0);
+        [SerializeField]TerrainEditingBackgroundContainer.EditMode DEBUG_EDIT_MODE=TerrainEditingBackgroundContainer.EditMode.Cube;
+        [SerializeField]Vector3Int                                 DEBUG_EDIT_SIZE=new Vector3Int(3,3,3);
+        [SerializeField]double                                     DEBUG_EDIT_DENSITY=100.0;
+        [SerializeField]MaterialId                                 DEBUG_EDIT_MATERIAL_ID=MaterialId.Dirt;
+        [SerializeField]int                                        DEBUG_EDIT_SMOOTHNESS=5;
         [SerializeField]VoxelTerrain PrefabVoxelTerrain;
         int maxConnections=1;
         internal readonly LinkedList<VoxelTerrain>terrainPool=new LinkedList<VoxelTerrain>();
          internal readonly Dictionary<int,VoxelTerrain>terrainActive=new Dictionary<int,VoxelTerrain>();
+        bool terrainEditingRequested;
         void Update(){
          if(terrain==null){
+          terrainSynchronization.Clear();
           int poolSize=maxConnections*(expropriationDistance.x*2+1)
                                      *(expropriationDistance.y*2+1);
           Logger.Debug("terrain poolSize required:"+poolSize);
@@ -262,10 +295,48 @@ namespace AKCondinoO.Voxels{
            cnk.expropriated=terrainPool.AddLast(cnk);
           }
          }
+         if(DEBUG_EDIT){
+            DEBUG_EDIT=false;
+          Logger.Debug("DEBUG_EDIT_AT:"+DEBUG_EDIT_AT);
+          EditTerrain(
+           DEBUG_EDIT_AT,
+           DEBUG_EDIT_MODE,
+           DEBUG_EDIT_SIZE,
+           DEBUG_EDIT_DENSITY,
+           DEBUG_EDIT_MATERIAL_ID,
+           DEBUG_EDIT_SMOOTHNESS
+          );
+         }
+         if(terrainEditingRequested&&OnTerrainEditingRequestsApplied()){
+            terrainEditingRequested=false;
+         }else{
+          if(terrainEditingRequests.Count>0&&OnTerrainEditingRequestsPush()){
+           OnTerrainEditingRequestsPushed();
+          }
+         }
          foreach(var kvp in terrainActive){VoxelTerrain cnk=kvp.Value;
           cnk.ManualUpdate();
          }
          proceduralGenerationCoroutineBeginFlag=generationStarters.Count>0;
+        }
+        bool OnTerrainEditingRequestsPush(){
+         if(terrainEditingBG.IsCompleted(terrainEditingBGThread.IsRunning)){
+          while(terrainEditingRequests.Count>0){terrainEditingBG.requests.Enqueue(terrainEditingRequests.Dequeue());}
+          TerrainEditingMultithreaded.Schedule(terrainEditingBG);
+          return true;
+         }
+         return false;
+        }
+        void OnTerrainEditingRequestsPushed(){
+         terrainEditingRequested=true;
+        }
+        bool OnTerrainEditingRequestsApplied(){
+         if(terrainEditingBG.IsCompleted(terrainEditingBGThread.IsRunning)){
+          foreach(int cnkIdx in terrainEditingBG.dirty){
+          }
+          return true;
+         }
+         return false;
         }
         internal readonly HashSet<Gameplayer>generationStarters=new HashSet<Gameplayer>();
          readonly HashSet<Vector2Int>coordinates=new HashSet<Vector2Int>();
@@ -350,7 +421,133 @@ namespace AKCondinoO.Voxels{
          }
          goto Loop;
         }
-        readonly Dictionary<VoxelTerrain,object>terrainSynchronization=new Dictionary<VoxelTerrain,object>();
+        internal static readonly Dictionary<VoxelTerrain,object>terrainSynchronization=new Dictionary<VoxelTerrain,object>();
+        static void WriteFile(FileStream fileStream,StreamWriter fileStreamWriter,StreamReader fileStreamReader,StringBuilder stringBuilder,Dictionary<int,Dictionary<Vector3Int,(double density,MaterialId materialId)>>data){         
+         stringBuilder.Clear();
+         fileStream.Position=0L;
+         fileStreamReader.DiscardBufferedData();
+         string line;
+         while((line=fileStreamReader.ReadLine())!=null){
+          int cnkIdxStringStart=line.IndexOf("cnkIdx=")+7;
+          int cnkIdxStringEnd=line.IndexOf(" ,",cnkIdxStringStart);
+          int cnkIdxStringLength=cnkIdxStringEnd-cnkIdxStringStart;
+          int cnkIdx=int.Parse(line.Substring(cnkIdxStringStart,cnkIdxStringLength));
+          Logger.Debug("WriteFile merge edits for cnkIdx:"+cnkIdx);
+         }
+         foreach(var cnkIdxEditsPair in data){
+          stringBuilder.AppendFormat("{{ cnkIdx={0} , {{ ",cnkIdxEditsPair.Key);
+          foreach(var vCoordEditPair in cnkIdxEditsPair.Value){
+           stringBuilder.AppendFormat("{{ vCoord={0} , (density={1}, materialId={2}) }}, ",vCoordEditPair.Key,vCoordEditPair.Value.density,vCoordEditPair.Value.materialId);
+          }
+          stringBuilder.AppendFormat("}} }}, {0}",Environment.NewLine);
+         }
+         fileStream.SetLength(0L);
+         fileStreamWriter.Write(stringBuilder.ToString());
+         fileStreamWriter.Flush();
+        }
+        internal struct TerrainEditRequest{
+         internal Vector3                                    center;
+         internal TerrainEditingBackgroundContainer.EditMode mode;
+         internal Vector3Int                                 size;
+         internal double                                     density;
+         internal MaterialId                                 material;
+         internal int                                        smoothness;
+        }
+        readonly Queue<TerrainEditRequest>terrainEditingRequests=new Queue<TerrainEditRequest>();
+        internal readonly TerrainEditingBackgroundContainer terrainEditingBG=new TerrainEditingBackgroundContainer();
+        internal class TerrainEditingBackgroundContainer:BackgroundContainer{
+         internal enum EditMode{Cube,}
+         internal readonly Queue<TerrainEditRequest>requests=new Queue<TerrainEditRequest>();
+         internal readonly HashSet<int>dirty=new HashSet<int>();
+        }
+        internal TerrainEditingMultithreaded terrainEditingBGThread;
+        internal class TerrainEditingMultithreaded:BaseMultithreaded<TerrainEditingBackgroundContainer>{
+         internal readonly FileStream editsFileStream;
+          internal readonly StreamWriter editsFileStreamWriter;
+          internal readonly StreamReader editsFileStreamReader;
+           internal readonly StringBuilder editsStringBuilder=new StringBuilder();
+         internal TerrainEditingMultithreaded(){
+          editsFileStream=new FileStream(VoxelSystem.editsFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
+           editsFileStreamWriter=new StreamWriter(editsFileStream);
+           editsFileStreamReader=new StreamReader(editsFileStream);
+         }
+         static readonly ConcurrentQueue<Dictionary<Vector3Int,(double,MaterialId)>>chunkDataPool=new ConcurrentQueue<Dictionary<Vector3Int,(double,MaterialId)>>();
+         readonly Dictionary<int,Dictionary<Vector3Int,(double density,MaterialId materialId)>>readData=new Dictionary<int,Dictionary<Vector3Int,(double,MaterialId)>>();
+         readonly Dictionary<int,Dictionary<Vector3Int,(double density,MaterialId materialId)>>saveData=new Dictionary<int,Dictionary<Vector3Int,(double,MaterialId)>>();
+         protected override void Execute(){
+          Logger.Debug("TerrainEditingMultithreaded Execute");
+          lock(VoxelSystem.terrainSynchronization){
+           Logger.Debug("container.requests.Count:"+container.requests.Count);
+           container.dirty.Clear();
+           while(container.requests.Count>0){var editRequest=container.requests.Dequeue();
+           }
+
+           saveData.Add(10,new Dictionary<Vector3Int,(double density,MaterialId materialId)>());
+           saveData.Add(15,new Dictionary<Vector3Int,(double density,MaterialId materialId)>());
+           saveData.Add(22,new Dictionary<Vector3Int,(double density,MaterialId materialId)>());
+           saveData[10].Add(new Vector3Int(10,11,11),(060d,MaterialId.Bedrock));
+           saveData[10].Add(new Vector3Int(15,11,21),(175d,MaterialId.Dirt));
+           saveData[15].Add(new Vector3Int(12,11,11),(060d,MaterialId.Bedrock));
+           WriteFile(editsFileStream,editsFileStreamWriter,editsFileStreamReader,editsStringBuilder,saveData);
+           WriteFile(editsFileStream,editsFileStreamWriter,editsFileStreamReader,editsStringBuilder,saveData);
+           //string fileData="";
+           //foreach(var kvp1 in saveData){
+           // string line="{ cnkIdx="+kvp1.Key+" , { ";
+           // foreach(var kvp2 in kvp1.Value){
+           //  line+="{ vCoord="+kvp2.Key+" , (density="+kvp2.Value.density+", materialId="+kvp2.Value.materialId+") }, ";
+           // }
+           // line+="} }, \n";
+           // Debug.Log(line);
+           // fileData+=line;
+           //}
+           //Debug.Log(fileData);
+           //int lastLineEndIndex=(-1);
+           //int currentLineIndex=( 0);
+           //while((lastLineEndIndex+1)<fileData.Length&&(lastLineEndIndex=fileData.IndexOf("\n",lastLineEndIndex==-1?0:(lastLineEndIndex+1)))>=0){
+            
+           // int s0=fileData.IndexOf("cnkIdx=",currentLineIndex)+7;
+           // int e0=fileData.IndexOf(" ",s0+1);
+           // int l0=e0-s0;
+           // int cnkIdx=int.Parse(fileData.Substring(s0,l0));
+           // Debug.Log("cnkIdx:"+cnkIdx);
+           // int s1=e0+1;
+           // while((s1=fileData.IndexOf("vCoord=",s1,lastLineEndIndex-s1))>=0){
+           //  //Debug.Log(s1);
+           //  s1+=7;
+           //  int e1=fileData.IndexOf(")",s1+1);
+           //  int l1=e1-(s1+1);
+           //  var stringvCoord=fileData.Substring(s1+1,l1);
+           //  int nextSubstringStart;
+           //  var x=stringvCoord.Substring(0,nextSubstringStart=stringvCoord.IndexOf(", "));
+           //  Debug.Log("x:"+x+"...");
+           //  nextSubstringStart+=2;
+           //  int nextSubstringStart1;
+           //  var y=stringvCoord.Substring(nextSubstringStart,(nextSubstringStart1=stringvCoord.IndexOf(", ",nextSubstringStart))-nextSubstringStart);
+           //  Debug.Log("y:"+y+"...");
+           //  nextSubstringStart1+=2;
+           //  var z=stringvCoord.Substring(nextSubstringStart1);
+           //  Debug.Log("z:"+z+"...");
+           //  //var vCoord=fileData.Substring(s1+1,l1);
+           //  //Debug.Log("vCoord:"+vCoord);
+           //  int s2=e1+1;
+           //  s2=fileData.IndexOf("density=",s2,lastLineEndIndex-s2);
+           //  //Debug.Log(s2);
+           //  s2+=8;
+           //  int s3;
+           //  var stringDensity=fileData.Substring(s2,(s3=fileData.IndexOf(",",s2))-s2);
+           //  Debug.Log("stringDensity:"+stringDensity);
+           //  s3+=13;
+           //  var stringMaterial=fileData.Substring(s3,fileData.IndexOf(")",s3)-s3);
+           //  Debug.Log("stringMaterial:"+stringMaterial);
+           // }
+
+           // Debug.Log(lastLineEndIndex);
+           // currentLineIndex=lastLineEndIndex+1;
+           //}
+
+          }
+         }
+        }
     }
 }
 namespace paulbourke.MarchingCubes{

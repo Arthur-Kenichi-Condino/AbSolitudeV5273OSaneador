@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.InteropServices;
 using Unity.Collections;
 using UnityEngine;
@@ -42,15 +43,16 @@ namespace AKCondinoO.Voxels{
         bool waitingMarchingCubes;
         bool pendingMovement;
         internal void ManualUpdate(){
-            if(waitingMarchingCubes&&OnBuilt()){
-                waitingMarchingCubes=false;
+            if(waitingMarchingCubes&&OnMeshDataSet()){
+               waitingMarchingCubes=false;
             }else{
-                if(pendingMovement&&OnMoving()){
-                    pendingMovement=false;OnMoved();
+                if(pendingMovement&&OnApplyingMovement()){
+                   pendingMovement=false;
+                    OnMovementApplied();
                 }
             }
         }
-        bool OnMoving(){
+        bool OnApplyingMovement(){
          if(marchingCubesBG.IsCompleted(VoxelSystem.Singleton.marchingCubesBGThreads[0].IsRunning)){
           worldBounds.center=transform.position=new Vector3(cnkRgn.x,0,cnkRgn.y);
           marchingCubesBG.cCoord=cCoord;
@@ -61,7 +63,7 @@ namespace AKCondinoO.Voxels{
          }
          return false;
         }
-        void OnMoved(){
+        void OnMovementApplied(){
          waitingMarchingCubes=true;
         }
         #region Rendering
@@ -77,7 +79,7 @@ namespace AKCondinoO.Voxels{
             MeshUpdateFlags meshFlags=MeshUpdateFlags.DontValidateIndices|MeshUpdateFlags.DontNotifyMeshUsers|MeshUpdateFlags.DontRecalculateBounds|MeshUpdateFlags.DontResetBoneBounds;
             internal Mesh mesh;
         #endregion
-        bool OnBuilt(){
+        bool OnMeshDataSet(){
          if(marchingCubesBG.IsCompleted(VoxelSystem.Singleton.marchingCubesBGThreads[0].IsRunning)){
           mesh.Clear(false);
           bool resize;
@@ -128,6 +130,8 @@ namespace AKCondinoO.Voxels{
          internal NativeList<UInt32>TempTri;
         }
         internal class MarchingCubesMultithreaded:BaseMultithreaded<MarchingCubesBackgroundContainer>{
+         internal readonly FileStream editsFileStream;
+          internal readonly StreamReader editsFileStreamReader;
          internal static Vector2 emptyUV{get;}=new Vector2(-1,-1);
          readonly Voxel[]voxels=new Voxel[VoxelsPerChunk];
          readonly Voxel[]polygonCell=new Voxel[8];
@@ -151,6 +155,8 @@ namespace AKCondinoO.Voxels{
          readonly SortedDictionary<(int,float,float),Vector2>vertexUVSorted=new SortedDictionary<(int,float,float),Vector2>();
          readonly Dictionary<int,int>weights=new Dictionary<int,int>(4);
          internal MarchingCubesMultithreaded(){
+          editsFileStream=new FileStream(VoxelSystem.editsFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
+          editsFileStreamReader=new StreamReader(editsFileStream);
           for(int i=0;i<biome.heightsCacheLength;++i){
            noiseForHeightCache[i]=new double[9][];
            materialIdPerHeightNoiseCache[i]=new MaterialId[9][];
@@ -186,6 +192,13 @@ namespace AKCondinoO.Voxels{
           //Logger.Debug("MarchingCubesMultithreaded Execute");
           container.TempVer.Clear();
           container.TempTri.Clear();
+          lock(container.voxelSystemSynchronizer){
+           editsFileStream.Position=0L;
+           editsFileStreamReader.DiscardBufferedData();
+           string line;
+           while((line=editsFileStreamReader.ReadLine())!=null){
+           }
+          }
           Vector2Int posOffset=Vector2Int.zero;
           UInt32 vertexCount=0;
           Vector3Int vCoord1;

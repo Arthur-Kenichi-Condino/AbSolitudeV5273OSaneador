@@ -11,6 +11,7 @@ using System.Text;
 using System.Threading;
 using Unity.Collections;
 using UnityEngine;
+using static AKCondinoO.Voxels.VoxelSystem.TerrainEditingMultithreaded;
 using static AKCondinoO.Voxels.VoxelTerrain.MarchingCubesBackgroundContainer;
 namespace AKCondinoO.Voxels{
     internal class VoxelSystem:MonoBehaviour{internal static VoxelSystem Singleton;
@@ -334,6 +335,9 @@ namespace AKCondinoO.Voxels{
         bool OnTerrainEditingRequestsApplied(){
          if(terrainEditingBG.IsCompleted(terrainEditingBGThread.IsRunning)){
           foreach(int cnkIdx in terrainEditingBG.dirty){
+           if(terrainActive.TryGetValue(cnkIdx,out VoxelTerrain cnk)){
+            cnk.OnEdited();
+           }
           }
           return true;
          }
@@ -455,6 +459,28 @@ namespace AKCondinoO.Voxels{
          materialId=(MaterialId)Enum.Parse(typeof(MaterialId),line.Substring(materialIdStringStart,materialIdStringEnd-materialIdStringStart));
          //Logger.Debug("WriteFile merging materialId:"+materialId);
         }
+        internal static void ReadFile(FileStream fileStream,StreamReader fileStreamReader,Dictionary<int,Dictionary<Vector3Int,(double density,MaterialId materialId)>>data,List<int>cnkIdxValuesToRead){
+         fileStream.Position=0L;
+         fileStreamReader.DiscardBufferedData();
+         string line;
+         while((line=fileStreamReader.ReadLine())!=null){
+          int cnkIdxStringEnd=GetcnkIdxFromFileLine(line,out int cnkIdx);
+          if(cnkIdxValuesToRead.Contains(cnkIdx)){
+           int vCoordStringStart=cnkIdxStringEnd+2;
+           while((vCoordStringStart=line.IndexOf("vCoord=",vCoordStringStart))>=0){
+            GetNextTerrainEditDataFromFileLine(line,ref vCoordStringStart,out Vector3Int vCoord,out double density,out MaterialId materialId);
+            if(!data.ContainsKey(cnkIdx)){
+             if(TerrainEditingMultithreaded.chunkDataPool.TryDequeue(out Dictionary<Vector3Int,(double,MaterialId)>chunkData)){
+              data.Add(cnkIdx,chunkData);
+             }else{
+              data.Add(cnkIdx,new Dictionary<Vector3Int,(double,MaterialId)>());
+             }
+            }
+            data[cnkIdx][vCoord]=(density,materialId);
+           }
+          }
+         }
+        }
         static void WriteFile(FileStream fileStream,StreamWriter fileStreamWriter,StreamReader fileStreamReader,StringBuilder stringBuilder,Dictionary<int,Dictionary<Vector3Int,(double density,MaterialId materialId)>>data){         
          stringBuilder.Clear();
          fileStream.Position=0L;
@@ -507,9 +533,10 @@ namespace AKCondinoO.Voxels{
           internal readonly StreamWriter editsFileStreamWriter;
           internal readonly StreamReader editsFileStreamReader;
            internal readonly StringBuilder editsStringBuilder=new StringBuilder();
-         static readonly ConcurrentQueue<Dictionary<Vector3Int,(double,MaterialId)>>chunkDataPool=new ConcurrentQueue<Dictionary<Vector3Int,(double,MaterialId)>>();
+         internal static readonly ConcurrentQueue<Dictionary<Vector3Int,(double,MaterialId)>>chunkDataPool=new ConcurrentQueue<Dictionary<Vector3Int,(double,MaterialId)>>();
          readonly Dictionary<int,Dictionary<Vector3Int,(double density,MaterialId materialId)>>readData=new Dictionary<int,Dictionary<Vector3Int,(double,MaterialId)>>();
          readonly Dictionary<int,Dictionary<Vector3Int,(double density,MaterialId materialId)>>saveData=new Dictionary<int,Dictionary<Vector3Int,(double,MaterialId)>>();
+         readonly List<int>cnkIdxValuesToRead=new List<int>();
          internal TerrainEditingMultithreaded(){
           editsFileStream=new FileStream(VoxelSystem.editsFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
            editsFileStreamWriter=new StreamWriter(editsFileStream);
@@ -580,12 +607,53 @@ namespace AKCondinoO.Voxels{
                 }else{
                  resultDensity=density;
                 }
-                //  TO DO: get current file data to merge
+                //  get current file data to merge
+                if(!readData.ContainsKey(cnkIdx3)){
+                 if(chunkDataPool.TryDequeue(out Dictionary<Vector3Int,(double,MaterialId)>chunkData)){
+                  readData.Add(cnkIdx3,chunkData);
+                 }else{
+                  readData.Add(cnkIdx3,new Dictionary<Vector3Int,(double,MaterialId)>());
+                 }
+                 cnkIdxValuesToRead.Clear();
+                 cnkIdxValuesToRead.Add(cnkIdx3);
+                 VoxelSystem.ReadFile(editsFileStream,editsFileStreamReader,readData,cnkIdxValuesToRead);
+                }
                 Voxel currentVoxel;
                 if(readData.ContainsKey(cnkIdx3)&&readData[cnkIdx3].ContainsKey(vCoord3)){
                  (double density,MaterialId materialId)voxelData=readData[cnkIdx3][vCoord3];
+                 currentVoxel=new Voxel(voxelData.density,Vector3.zero,voxelData.materialId);
                 }else{
+                 currentVoxel=new Voxel();
+                 Vector3Int noiseInput=vCoord3;noiseInput.x+=cnkRgn3.x;
+                                               noiseInput.z+=cnkRgn3.y;
+                 VoxelSystem.biome.Setvxl(noiseInput,null,null,0,vCoord3.z+vCoord3.x*Depth,ref currentVoxel);
                 }
+                resultDensity=Math.Max(resultDensity,currentVoxel.Density);
+                if(material==MaterialId.Air&&!(-resultDensity>=-IsoLevel)){
+                 resultDensity=-resultDensity;
+                }
+                if(!saveData.ContainsKey(cnkIdx3)){
+                 if(chunkDataPool.TryDequeue(out Dictionary<Vector3Int,(double,MaterialId)>chunkData)){
+                  saveData.Add(cnkIdx3,chunkData);
+                 }else{
+                  saveData.Add(cnkIdx3,new Dictionary<Vector3Int,(double,MaterialId)>());
+                 }
+                }
+                saveData[cnkIdx3][vCoord3]=(resultDensity,-resultDensity>=-IsoLevel?MaterialId.Air:material);
+                container.dirty.Add(cnkIdx3);
+                for(int ngbx=-1;ngbx<=1;ngbx++){
+                for(int ngbz=-1;ngbz<=1;ngbz++){
+                 if(ngbx==0&&ngbz==0){
+                  continue;
+                 }
+                 Vector2Int nCoord1=cCoord3+new Vector2Int(ngbx,ngbz);
+                 if(Math.Abs(nCoord1.x)>=MaxcCoordx||
+                    Math.Abs(nCoord1.y)>=MaxcCoordy){
+                  continue;
+                 }
+                 int ngbIdx1=GetcnkIdx(nCoord1.x,nCoord1.y);
+                 container.dirty.Add(ngbIdx1);
+                }}
                if(z==0){break;}
               }}
                if(x==0){break;}
@@ -599,7 +667,7 @@ namespace AKCondinoO.Voxels{
            }           
            foreach(var syn in VoxelSystem.terrainSynchronization)Monitor.Enter(syn.Value);
            try{
-            WriteFile(editsFileStream,editsFileStreamWriter,editsFileStreamReader,editsStringBuilder,saveData);
+            VoxelSystem.WriteFile(editsFileStream,editsFileStreamWriter,editsFileStreamReader,editsStringBuilder,saveData);
            }catch{
             throw;
            }finally{

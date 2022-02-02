@@ -6,6 +6,7 @@ using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Rendering;
 using static AKCondinoO.Voxels.VoxelSystem;
+using static AKCondinoO.Voxels.VoxelSystem.TerrainEditingMultithreaded;
 using static AKCondinoO.Voxels.VoxelTerrain.MarchingCubesBackgroundContainer;
 namespace AKCondinoO.Voxels{
     internal class VoxelTerrain:MonoBehaviour{
@@ -40,8 +41,12 @@ namespace AKCondinoO.Voxels{
           pendingMovement=true;
          }
         }
+        internal void OnEdited(){
+         pendingEditChanges=true;
+        }
         bool waitingMarchingCubes;
         bool pendingMovement;
+        bool pendingEditChanges;
         internal void ManualUpdate(){
             if(waitingMarchingCubes&&OnMeshDataSet()){
                waitingMarchingCubes=false;
@@ -49,6 +54,9 @@ namespace AKCondinoO.Voxels{
                 if(pendingMovement&&OnApplyingMovement()){
                    pendingMovement=false;
                     OnMovementApplied();
+                }else if(pendingEditChanges&&OnPushingEditChanges()){
+                         pendingEditChanges=false;
+                    OnEditChangesPushed();
                 }
             }
         }
@@ -64,6 +72,16 @@ namespace AKCondinoO.Voxels{
          return false;
         }
         void OnMovementApplied(){
+         waitingMarchingCubes=true;
+        }
+        bool OnPushingEditChanges(){
+         if(marchingCubesBG.IsCompleted(VoxelSystem.Singleton.marchingCubesBGThreads[0].IsRunning)){
+          MarchingCubesMultithreaded.Schedule(marchingCubesBG);
+          return true;
+         }
+         return false;
+        }
+        void OnEditChangesPushed(){
          waitingMarchingCubes=true;
         }
         #region Rendering
@@ -134,6 +152,7 @@ namespace AKCondinoO.Voxels{
           internal readonly StreamReader editsFileStreamReader;
          internal static Vector2 emptyUV{get;}=new Vector2(-1,-1);
          readonly Voxel[]voxels=new Voxel[VoxelsPerChunk];
+         readonly Dictionary<int,Voxel>[]neighbors=new Dictionary<int,Voxel>[8];
          readonly Voxel[]polygonCell=new Voxel[8];
          readonly double[][][]noiseForHeightCache=new double[biome.heightsCacheLength][][];
          readonly MaterialId[][][]materialIdPerHeightNoiseCache=new MaterialId[biome.heightsCacheLength][][];
@@ -154,9 +173,13 @@ namespace AKCondinoO.Voxels{
          readonly Dictionary<Vector2,int>vertexUVCounted=new Dictionary<Vector2,int>();
          readonly SortedDictionary<(int,float,float),Vector2>vertexUVSorted=new SortedDictionary<(int,float,float),Vector2>();
          readonly Dictionary<int,int>weights=new Dictionary<int,int>(4);
+         readonly Dictionary<int,Dictionary<Vector3Int,(double density,MaterialId materialId)>>readData=new Dictionary<int,Dictionary<Vector3Int,(double,MaterialId)>>();
+         readonly List<int>cnkIdxValuesToRead=new List<int>();
+         readonly Dictionary<int,int>ngbIdxoftIdxPairs=new Dictionary<int,int>();
          internal MarchingCubesMultithreaded(){
           editsFileStream=new FileStream(VoxelSystem.editsFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
           editsFileStreamReader=new StreamReader(editsFileStream);
+          for(int i=0;i<neighbors.Length;++i){neighbors[i]=new Dictionary<int,Voxel>();}
           for(int i=0;i<biome.heightsCacheLength;++i){
            noiseForHeightCache[i]=new double[9][];
            materialIdPerHeightNoiseCache[i]=new MaterialId[9][];
@@ -166,6 +189,7 @@ namespace AKCondinoO.Voxels{
          }
          protected override void Cleanup(){
           Array.Clear(voxels,0,voxels.Length);
+          for(int i=0;i<neighbors.Length;++i){neighbors[i].Clear();}
           for(int i=0;i<biome.heightsCacheLength;++i){
            for(int j=0;j<noiseForHeightCache[i].Length;++j){
             if(noiseForHeightCache[i][j]!=null)Array.Clear(noiseForHeightCache[i][j],0,noiseForHeightCache[i][j].Length);
@@ -187,16 +211,46 @@ namespace AKCondinoO.Voxels{
            VoxelSystem.vertexUVListPool.Enqueue(list);
           }
           vertexUV.Clear();
+          foreach(var chunkData in readData){chunkData.Value.Clear();TerrainEditingMultithreaded.chunkDataPool.Enqueue(chunkData.Value);}
+          readData.Clear();
          }
          protected override void Execute(){
           //Logger.Debug("MarchingCubesMultithreaded Execute");
           container.TempVer.Clear();
           container.TempTri.Clear();
           lock(container.voxelSystemSynchronizer){
-           editsFileStream.Position=0L;
-           editsFileStreamReader.DiscardBufferedData();
-           string line;
-           while((line=editsFileStreamReader.ReadLine())!=null){
+           ngbIdxoftIdxPairs.Clear();
+           cnkIdxValuesToRead.Clear();
+           cnkIdxValuesToRead.Add(container.cnkIdx);
+           for(int x=-1;x<=1;x++){
+           for(int z=-1;z<=1;z++){
+            if(x==0&&z==0){
+             continue;
+            }
+            Vector2Int nCoord1=container.cCoord;
+                       nCoord1.x+=x;
+                       nCoord1.y+=z;
+            if(Math.Abs(nCoord1.x)>=MaxcCoordx||
+               Math.Abs(nCoord1.y)>=MaxcCoordy){
+             continue;
+            }
+            int ngbIdx1=GetcnkIdx(nCoord1.x,nCoord1.y);
+            int oftIdx1=GetoftIdx(nCoord1-container.cCoord)-1;
+            ngbIdxoftIdxPairs[ngbIdx1]=oftIdx1;
+            cnkIdxValuesToRead.Add(ngbIdx1);
+           }}
+           VoxelSystem.ReadFile(editsFileStream,editsFileStreamReader,readData,cnkIdxValuesToRead);
+           if(readData.TryGetValue(container.cnkIdx,out Dictionary<Vector3Int,(double density,MaterialId materialId)>cnkEdits)){
+            foreach(var vCoordEditPair in cnkEdits){var vCoord=vCoordEditPair.Key;var voxelData=vCoordEditPair.Value;
+             voxels[GetvxlIdx(vCoord.x,vCoord.y,vCoord.z)]=new Voxel(voxelData.density,Vector3.zero,voxelData.materialId);
+            }
+           }
+           foreach(var ngbIdxoftIdxPair in ngbIdxoftIdxPairs){int ngbIdx=ngbIdxoftIdxPair.Key;int oftIdx=ngbIdxoftIdxPair.Value;
+            if(readData.TryGetValue(ngbIdx,out Dictionary<Vector3Int,(double density,MaterialId materialId)>ngbEdits)){
+             foreach(var vCoordEditPair in ngbEdits){var vCoord=vCoordEditPair.Key;var voxelData=vCoordEditPair.Value;
+              neighbors[oftIdx][GetvxlIdx(vCoord.x,vCoord.y,vCoord.z)]=new Voxel(voxelData.density,Vector3.zero,voxelData.materialId);
+             }
+            }
            }
           }
           Vector2Int posOffset=Vector2Int.zero;
@@ -228,6 +282,8 @@ namespace AKCondinoO.Voxels{
            void SetpolygonCellVoxel(){
             Vector2Int cnkRgn2=container.cnkRgn;
             Vector2Int cCoord2=container.cCoord;
+            int oftIdx2=-1;
+            int vxlIdx2=-1;
             bool cache2=false;
             if(vCoord2.y<=0){/*  :fora do mundo, baixo:  */
              polygonCell[corner]=Voxel.Bedrock;
@@ -242,11 +298,18 @@ namespace AKCondinoO.Voxels{
              }else{
               cache2=true;
              }
-             int oftIdx2=GetoftIdx(cCoord2-container.cCoord);
-             //  pegar valor do bioma:
-             Vector3Int noiseInput=vCoord2;noiseInput.x+=cnkRgn2.x;
-                                           noiseInput.z+=cnkRgn2.y;
-             VoxelSystem.biome.Setvxl(noiseInput,noiseForHeightCache,materialIdPerHeightNoiseCache,oftIdx2,vCoord2.z+vCoord2.x*Depth,ref polygonCell[corner]);
+             oftIdx2=GetoftIdx(cCoord2-container.cCoord);
+             vxlIdx2=GetvxlIdx(vCoord2.x,vCoord2.y,vCoord2.z);
+             if(oftIdx2==0&&voxels[vxlIdx2].IsCreated){
+              polygonCell[corner]=voxels[vxlIdx2];
+             }else if(oftIdx2>0&&neighbors[oftIdx2-1].ContainsKey(vxlIdx2)){
+              polygonCell[corner]=neighbors[oftIdx2-1][vxlIdx2];
+             }else{
+              //  pegar valor do bioma:
+              Vector3Int noiseInput=vCoord2;noiseInput.x+=cnkRgn2.x;
+                                            noiseInput.z+=cnkRgn2.y;
+              VoxelSystem.biome.Setvxl(noiseInput,noiseForHeightCache,materialIdPerHeightNoiseCache,oftIdx2,vCoord2.z+vCoord2.x*Depth,ref polygonCell[corner]);
+             }
             }
             if(polygonCell[corner].Normal==Vector3.zero){
              //  calcular normal:
@@ -271,10 +334,22 @@ namespace AKCondinoO.Voxels{
                 cCoord3=cnkRgnTocCoord(cnkRgn3);
                }
                int oftIdx3=GetoftIdx(cCoord3-container.cCoord);
-               //  pegar valor do bioma:
-               Vector3Int noiseInput=vCoord3;noiseInput.x+=cnkRgn3.x;
-                                             noiseInput.z+=cnkRgn3.y;
-               VoxelSystem.biome.Setvxl(noiseInput,noiseForHeightCache,materialIdPerHeightNoiseCache,oftIdx3,vCoord3.z+vCoord3.x*Depth,ref tmpvxl[tmpIdx]);
+               int vxlIdx3=GetvxlIdx(vCoord3.x,vCoord3.y,vCoord3.z);
+               if(oftIdx3==0&&voxels[vxlIdx3].IsCreated){
+                tmpvxl[tmpIdx]=voxels[vxlIdx3];
+               }else if(oftIdx3>0&&neighbors[oftIdx3-1].ContainsKey(vxlIdx3)){
+                tmpvxl[tmpIdx]=neighbors[oftIdx3-1][vxlIdx3];
+               }else{
+                //  pegar valor do bioma:
+                Vector3Int noiseInput=vCoord3;noiseInput.x+=cnkRgn3.x;
+                                              noiseInput.z+=cnkRgn3.y;
+                VoxelSystem.biome.Setvxl(noiseInput,noiseForHeightCache,materialIdPerHeightNoiseCache,oftIdx3,vCoord3.z+vCoord3.x*Depth,ref tmpvxl[tmpIdx]);
+                if(oftIdx3==0){
+                 voxels[vxlIdx3]=tmpvxl[tmpIdx];
+                }else if(oftIdx3>0){
+                 neighbors[oftIdx3-1][vxlIdx3]=tmpvxl[tmpIdx];
+                }
+               }
               }
              }
              Vector3 polygonCellNormal=new Vector3{
@@ -286,6 +361,13 @@ namespace AKCondinoO.Voxels{
              if(polygonCell[corner].Normal!=Vector3.zero){
               polygonCell[corner].Normal.Normalize();
              }
+            }
+            if(oftIdx2>=0&&vxlIdx2>=0){
+             if(oftIdx2==0){
+              voxels[vxlIdx2]=polygonCell[corner];
+             }else if(oftIdx2>0){
+              neighbors[oftIdx2-1][vxlIdx2]=polygonCell[corner];
+             }//  :salvar valor construído
             }
             if(cache2){
              voxelsCache2[0][0]=polygonCell[corner];

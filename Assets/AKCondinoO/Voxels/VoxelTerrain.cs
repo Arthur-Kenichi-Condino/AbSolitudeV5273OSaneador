@@ -253,7 +253,6 @@ namespace AKCondinoO.Voxels{
             }
            }
           }
-          Vector2Int posOffset=Vector2Int.zero;
           UInt32 vertexCount=0;
           Vector3Int vCoord1;
           for(vCoord1=new Vector3Int();vCoord1.y<Height;vCoord1.y++){
@@ -375,8 +374,78 @@ namespace AKCondinoO.Voxels{
              voxelsCache2[2][vCoord2.z+vCoord2.x*Depth]=polygonCell[corner];
             }
            }
-           MarchingCubes(polygonCell,vCoord1,vertices,verticesCache,materials,normals,density,vertex,material,distance,idx,verPos,posOffset,ref vertexCount,container.TempVer,container.TempTri,vertexUV);
+           MarchingCubes(polygonCell,vCoord1,vertices,verticesCache,materials,normals,density,vertex,material,distance,idx,verPos,ref vertexCount,container.TempVer,container.TempTri,vertexUV);
           }}}
+          Vector2Int posOffset=Vector2Int.zero;
+          Vector2Int crdOffset=Vector2Int.zero;
+          for(crdOffset.y=0,posOffset.y=0,
+              vCoord1.y=0;vCoord1.y<Height;vCoord1.y++){
+          for(vCoord1.z=0;vCoord1.z<Depth ;vCoord1.z++){
+              vCoord1.x=0;
+           //  east
+           crdOffset.x=1;
+           posOffset.x=Width;
+           AddEdgesvertexUV();                        
+              vCoord1.x=Width-1;
+           //  west
+           crdOffset.x=-1;
+           posOffset.x=-Width;
+           AddEdgesvertexUV();
+          }}
+          for(crdOffset.x=0,posOffset.x=0,
+              vCoord1.y=0;vCoord1.y<Height;vCoord1.y++){
+          for(vCoord1.x=0;vCoord1.x<Width ;vCoord1.x++){
+              vCoord1.z=0;
+           //  north
+           crdOffset.y=1;
+           posOffset.y=Depth;
+           AddEdgesvertexUV();
+              vCoord1.z=Depth-1;
+           //  south
+           crdOffset.y=-1;
+           posOffset.y=-Depth;
+           AddEdgesvertexUV();
+          }}
+          void AddEdgesvertexUV(){
+           int corner=0;Vector3Int vCoord2=vCoord1;                                       SetpolygonCellVoxel2();
+               corner++;           vCoord2=vCoord1;vCoord2.x+=1;                          SetpolygonCellVoxel2();
+               corner++;           vCoord2=vCoord1;vCoord2.x+=1;vCoord2.y+=1;             SetpolygonCellVoxel2();
+               corner++;           vCoord2=vCoord1;             vCoord2.y+=1;             SetpolygonCellVoxel2();
+               corner++;           vCoord2=vCoord1;                          vCoord2.z+=1;SetpolygonCellVoxel2();
+               corner++;           vCoord2=vCoord1;vCoord2.x+=1;             vCoord2.z+=1;SetpolygonCellVoxel2();
+               corner++;           vCoord2=vCoord1;vCoord2.x+=1;vCoord2.y+=1;vCoord2.z+=1;SetpolygonCellVoxel2();
+               corner++;           vCoord2=vCoord1;             vCoord2.y+=1;vCoord2.z+=1;SetpolygonCellVoxel2();
+           void SetpolygonCellVoxel2(){
+            Vector2Int cnkRgn2=container.cnkRgn+posOffset;
+            Vector2Int cCoord2=container.cCoord+crdOffset;
+            if(vCoord2.y<=0){/*  :fora do mundo, baixo:  */
+             polygonCell[corner]=Voxel.Bedrock;
+            }else if(vCoord2.y>=Height){/*  :fora do mundo, cima:  */
+             polygonCell[corner]=Voxel.Air;
+            }else{
+             if(vCoord2.x<0||vCoord2.x>=Width||
+                vCoord2.z<0||vCoord2.z>=Depth
+             ){
+              ValidateCoord(ref cnkRgn2,ref vCoord2);
+              cCoord2=cnkRgnTocCoord(cnkRgn2);
+             }
+             int oftIdx2=GetoftIdx(cCoord2-container.cCoord);
+             int vxlIdx2=GetvxlIdx(vCoord2.x,vCoord2.y,vCoord2.z);
+             /*  já construído:  */
+             if(oftIdx2==0&&voxels[vxlIdx2].IsCreated){
+              polygonCell[corner]=voxels[vxlIdx2];
+             }else if(oftIdx2>0&&neighbors[oftIdx2-1].ContainsKey(vxlIdx2)){
+              polygonCell[corner]=neighbors[oftIdx2-1][vxlIdx2];
+             }else{
+              //  pegar valor do bioma:
+              Vector3Int noiseInput=vCoord2;noiseInput.x+=cnkRgn2.x;
+                                            noiseInput.z+=cnkRgn2.y;
+              VoxelSystem.biome.Setvxl(noiseInput,noiseForHeightCache,materialIdPerHeightNoiseCache,oftIdx2,vCoord2.z+vCoord2.x*Depth,ref polygonCell[corner]);
+             }
+            }
+           }
+           MarchingCubes2(polygonCell,vCoord1,vertices,materials,density,vertex,material,idx,verPos,posOffset,vertexUV);
+          }
           for(int i=0;i<container.TempVer.Length/3;i++){
            idx[0]=i*3;
            idx[1]=i*3+1;

@@ -117,7 +117,7 @@ namespace AKCondinoO.Voxels{
         });
         internal static Vector3 trianglePosAdj{get;}=new Vector3((Width/2.0f)-0.5f,(Height/2.0f)-0.5f,(Depth/2.0f)-0.5f);
         internal static ConcurrentQueue<List<Vector2>>vertexUVListPool=new ConcurrentQueue<List<Vector2>>();
-        internal static void MarchingCubes(Voxel[]polygonCell,Vector3Int vCoord1,Vector3[]vertices,Vector3[][][]verticesCache,MaterialId[]materials,Vector3[]normals,double[]density,Vector3[]vertex,MaterialId[]material,float[]distance,int[]idx,Vector3[]verPos,Vector2Int posOffset,ref UInt32 vertexCount,NativeList<Vertex>TempVer,NativeList<UInt32>TempTri,Dictionary<Vector3,List<Vector2>>vertexUV){
+        internal static void MarchingCubes(Voxel[]polygonCell,Vector3Int vCoord1,Vector3[]vertices,Vector3[][][]verticesCache,MaterialId[]materials,Vector3[]normals,double[]density,Vector3[]vertex,MaterialId[]material,float[]distance,int[]idx,Vector3[]verPos,ref UInt32 vertexCount,NativeList<Vertex>TempVer,NativeList<UInt32>TempTri,Dictionary<Vector3,List<Vector2>>vertexUV){
          int edgeIndex;
          /*
              Determine the index into the edge table which
@@ -205,8 +205,7 @@ namespace AKCondinoO.Voxels{
            idx[0]=Tables.TriangleTable[edgeIndex][i  ];
            idx[1]=Tables.TriangleTable[edgeIndex][i+1];
            idx[2]=Tables.TriangleTable[edgeIndex][i+2];
-           Vector3 pos=vCoord1-trianglePosAdj;pos.x+=posOffset.x;
-                                              pos.z+=posOffset.y;
+           Vector3 pos=vCoord1-trianglePosAdj;
            Vector2 materialUV=AtlasHelper.uv[Mathf.Max((int)materials[idx[0]],
                                                        (int)materials[idx[1]],
                                                        (int)materials[idx[2]]
@@ -218,6 +217,74 @@ namespace AKCondinoO.Voxels{
            TempTri.Add(vertexCount+1u);
            TempTri.Add(vertexCount  );
                        vertexCount+=3u;
+           if(!vertexUV.ContainsKey(verPos[0])){if(vertexUVListPool.TryDequeue(out List<Vector2>list)){vertexUV.Add(verPos[0],list);}else{vertexUV.Add(verPos[0],new List<Vector2>());}}vertexUV[verPos[0]].Add(materialUV);
+           if(!vertexUV.ContainsKey(verPos[1])){if(vertexUVListPool.TryDequeue(out List<Vector2>list)){vertexUV.Add(verPos[1],list);}else{vertexUV.Add(verPos[1],new List<Vector2>());}}vertexUV[verPos[1]].Add(materialUV);
+           if(!vertexUV.ContainsKey(verPos[2])){if(vertexUVListPool.TryDequeue(out List<Vector2>list)){vertexUV.Add(verPos[2],list);}else{vertexUV.Add(verPos[2],new List<Vector2>());}}vertexUV[verPos[2]].Add(materialUV);
+          }
+         }
+        }
+        internal static void MarchingCubes2(Voxel[]polygonCell,Vector3Int vCoord1,Vector3[]vertices,MaterialId[]materials,double[]density,Vector3[]vertex,MaterialId[]material,int[]idx,Vector3[]verPos,Vector2Int posOffset,Dictionary<Vector3,List<Vector2>>vertexUV){ 
+         int edgeIndex;
+         /*
+             Determine the index into the edge table which
+             tells us which vertices are inside of the surface
+         */
+                                             edgeIndex =  0;
+         if(-polygonCell[0].Density<IsoLevel)edgeIndex|=  1;
+         if(-polygonCell[1].Density<IsoLevel)edgeIndex|=  2;
+         if(-polygonCell[2].Density<IsoLevel)edgeIndex|=  4;
+         if(-polygonCell[3].Density<IsoLevel)edgeIndex|=  8;
+         if(-polygonCell[4].Density<IsoLevel)edgeIndex|= 16;
+         if(-polygonCell[5].Density<IsoLevel)edgeIndex|= 32;
+         if(-polygonCell[6].Density<IsoLevel)edgeIndex|= 64;
+         if(-polygonCell[7].Density<IsoLevel)edgeIndex|=128;
+         if(Tables.EdgeTable[edgeIndex]!=0){
+          if(0!=(Tables.EdgeTable[edgeIndex]&   1)){vertexInterp(0,1,ref vertices[ 0],ref materials[ 0]);}
+          if(0!=(Tables.EdgeTable[edgeIndex]&   2)){vertexInterp(1,2,ref vertices[ 1],ref materials[ 1]);}
+          if(0!=(Tables.EdgeTable[edgeIndex]&   4)){vertexInterp(2,3,ref vertices[ 2],ref materials[ 2]);}
+          if(0!=(Tables.EdgeTable[edgeIndex]&   8)){vertexInterp(3,0,ref vertices[ 3],ref materials[ 3]);}
+          if(0!=(Tables.EdgeTable[edgeIndex]&  16)){vertexInterp(4,5,ref vertices[ 4],ref materials[ 4]);}
+          if(0!=(Tables.EdgeTable[edgeIndex]&  32)){vertexInterp(5,6,ref vertices[ 5],ref materials[ 5]);}
+          if(0!=(Tables.EdgeTable[edgeIndex]&  64)){vertexInterp(6,7,ref vertices[ 6],ref materials[ 6]);}
+          if(0!=(Tables.EdgeTable[edgeIndex]& 128)){vertexInterp(7,4,ref vertices[ 7],ref materials[ 7]);}
+          if(0!=(Tables.EdgeTable[edgeIndex]& 256)){vertexInterp(0,4,ref vertices[ 8],ref materials[ 8]);}
+          if(0!=(Tables.EdgeTable[edgeIndex]& 512)){vertexInterp(1,5,ref vertices[ 9],ref materials[ 9]);}
+          if(0!=(Tables.EdgeTable[edgeIndex]&1024)){vertexInterp(2,6,ref vertices[10],ref materials[10]);}
+          if(0!=(Tables.EdgeTable[edgeIndex]&2048)){vertexInterp(3,7,ref vertices[11],ref materials[11]);}
+          void vertexInterp(int c0,int c1,ref Vector3 p,ref MaterialId m){
+           density[0]=-polygonCell[c0].Density;vertex[0]=corners[c0];material[0]=polygonCell[c0].Material;
+           density[1]=-polygonCell[c1].Density;vertex[1]=corners[c1];material[1]=polygonCell[c1].Material;
+           //  p
+           if(Math.Abs(IsoLevel-density[0])<double.Epsilon){p=vertex[0];goto _Material;}
+           if(Math.Abs(IsoLevel-density[1])<double.Epsilon){p=vertex[1];goto _Material;}
+           if(Math.Abs(density[0]-density[1])<double.Epsilon){p=vertex[0];goto _Material;}
+           double marchingUnit=(IsoLevel-density[0])/(density[1]-density[0]);
+           p.x=(float)(vertex[0].x+marchingUnit*(vertex[1].x-vertex[0].x));
+           p.y=(float)(vertex[0].y+marchingUnit*(vertex[1].y-vertex[0].y));
+           p.z=(float)(vertex[0].z+marchingUnit*(vertex[1].z-vertex[0].z));
+           _Material:{
+            m=material[0];
+            if(density[1]<density[0]){
+             m=material[1];
+            }else if(density[1]==density[0]&&(int)material[1]>(int)material[0]){
+             m=material[1];
+            }
+           }
+          }
+          /*  Create the triangle  */
+          for(int i=0;Tables.TriangleTable[edgeIndex][i]!=-1;i+=3){
+           idx[0]=Tables.TriangleTable[edgeIndex][i  ];
+           idx[1]=Tables.TriangleTable[edgeIndex][i+1];
+           idx[2]=Tables.TriangleTable[edgeIndex][i+2];
+           Vector3 pos=vCoord1-trianglePosAdj;pos.x+=posOffset.x;
+                                              pos.z+=posOffset.y;
+           Vector2 materialUV=AtlasHelper.uv[Mathf.Max((int)materials[idx[0]],
+                                                       (int)materials[idx[1]],
+                                                       (int)materials[idx[2]]
+           )];
+           verPos[0]=pos+vertices[idx[0]];
+           verPos[1]=pos+vertices[idx[1]];
+           verPos[2]=pos+vertices[idx[2]];
            if(!vertexUV.ContainsKey(verPos[0])){if(vertexUVListPool.TryDequeue(out List<Vector2>list)){vertexUV.Add(verPos[0],list);}else{vertexUV.Add(verPos[0],new List<Vector2>());}}vertexUV[verPos[0]].Add(materialUV);
            if(!vertexUV.ContainsKey(verPos[1])){if(vertexUVListPool.TryDequeue(out List<Vector2>list)){vertexUV.Add(verPos[1],list);}else{vertexUV.Add(verPos[1],new List<Vector2>());}}vertexUV[verPos[1]].Add(materialUV);
            if(!vertexUV.ContainsKey(verPos[2])){if(vertexUVListPool.TryDequeue(out List<Vector2>list)){vertexUV.Add(verPos[2],list);}else{vertexUV.Add(verPos[2],new List<Vector2>());}}vertexUV[verPos[2]].Add(materialUV);

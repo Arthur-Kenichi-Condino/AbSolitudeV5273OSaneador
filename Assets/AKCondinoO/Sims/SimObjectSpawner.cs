@@ -2,16 +2,19 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
 using UnityEngine;
 using static AKCondinoO.Sims.SimObject;
 namespace AKCondinoO.Sims{
     internal class SimObjectSpawner:MonoBehaviour{internal static SimObjectSpawner Singleton;
-        internal readonly ConcurrentDictionary<(Type simType,ulong number),SimObject.SerializableTransform>persistentDataCache=new ConcurrentDictionary<(Type,ulong),SerializableTransform>();
+        internal readonly ConcurrentDictionary<(Type simType,ulong number),SimObject.PersistentData>persistentDataCache=new ConcurrentDictionary<(Type,ulong),SimObject.PersistentData>();
          readonly Dictionary<(Type simType,ulong number),float>persistentDataTimeToLive=new Dictionary<(Type,ulong),float>();
           readonly List<(Type simType,ulong number)>persistentDataTimeToLiveIds=new List<(Type,ulong)>();
         internal readonly Dictionary<Type,GameObject>SimObjectPrefabs=new Dictionary<Type,GameObject>();
         void Awake(){if(Singleton==null){Singleton=this;}else{DestroyImmediate(this);return;}
          Core.Singleton.OnDestroyingCoreEvent+=OnDestroyingCoreEvent;
+         PersistentDataSavingMultithreaded.Stop=false;persistentDataSavingBGThread=new PersistentDataSavingMultithreaded();
          foreach(var o in Resources.LoadAll("AKCondinoO/",typeof(GameObject))){var gO=(GameObject)o;var sO=gO.GetComponent<SimObject>();if(sO==null)continue;
           Type t=sO.GetType();
           SimObjectPrefabs.Add(t,gO);
@@ -22,6 +25,7 @@ namespace AKCondinoO.Sims{
          StartCoroutine(SpawnCoroutine());
         }
         void OnDestroyingCoreEvent(object sender,EventArgs e){
+         PersistentDataSavingMultithreaded.Stop=true;persistentDataSavingBGThread.Wait();
          if(Singleton==this){Singleton=null;}
         }
         [SerializeField]int       DEBUG_CREATE_SIM_OBJECT_AMOUNT;
@@ -59,7 +63,7 @@ namespace AKCondinoO.Sims{
          for(int i=0;i<persistentDataTimeToLiveIds.Count;++i){
           var id=persistentDataTimeToLiveIds[i];
           if((persistentDataTimeToLive[id]-=Time.deltaTime)<0f){
-           persistentDataCache.TryRemove(id,out _);
+           persistentDataCache.TryRemove(id,out SimObject.PersistentData persistentData);
            persistentDataTimeToLive.Remove(id);
           }
          }
@@ -121,7 +125,7 @@ namespace AKCondinoO.Sims{
               sO=gO.GetComponent<SimObject>();
             }
             persistentDataTimeToLive.Remove(id);
-            persistentDataCache.TryAdd(id,new SerializableTransform());
+            persistentDataCache.TryAdd(id,new SimObject.PersistentData());
             active.Add(id,sO);
             sO.id=id;
            }
@@ -138,6 +142,19 @@ namespace AKCondinoO.Sims{
          persistentDataTimeToLive[sO.id.Value]=persistentDataCacheTimeToLive;
          sO.pooled=pool[sO.id.Value.simType].AddLast(sO);
          sO.id=null;
+        }
+        internal readonly PersistentDataSavingBackgroundContainer persistentDataSavingBG=new PersistentDataSavingBackgroundContainer();
+        internal class PersistentDataSavingBackgroundContainer:BackgroundContainer{
+         internal readonly Dictionary<Type,ConcurrentDictionary<ulong,SimObject.PersistentData>>data=new Dictionary<Type,ConcurrentDictionary<ulong,SimObject.PersistentData>>();
+        }
+        internal PersistentDataSavingMultithreaded persistentDataSavingBGThread;
+        internal class PersistentDataSavingMultithreaded:BaseMultithreaded<PersistentDataSavingBackgroundContainer>{
+         internal readonly Dictionary<Type,FileStream>fileStream=new Dictionary<Type,FileStream>();
+          internal readonly Dictionary<Type,StreamWriter>fileStreamWriter=new Dictionary<Type,StreamWriter>();
+          internal readonly Dictionary<Type,StreamReader>fileStreamReader=new Dictionary<Type,StreamReader>();
+           internal readonly StringBuilder stringBuilder=new StringBuilder();
+         protected override void Execute(){
+         }
         }
     }
 }

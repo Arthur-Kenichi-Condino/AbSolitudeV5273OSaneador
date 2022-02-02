@@ -23,10 +23,10 @@ namespace AKCondinoO.Sims{
              SimObjectSpawner.Singleton.DespawnQueue.Enqueue(this);
          }
         }
-        [Serializable]internal struct SerializableTransform{
-         public SerializableQuaternion rotation;
-         public SerializableVector3    position;
-         public SerializableVector3    localScale;
+        internal struct PersistentData{
+         public Quaternion rotation;
+         public Vector3    position;
+         public Vector3    localScale;
         }
     }
 }

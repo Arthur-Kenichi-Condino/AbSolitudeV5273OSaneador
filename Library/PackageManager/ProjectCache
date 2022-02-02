@@ -5,27 +5,27 @@ m_ProjectFiles:
     m_ContentTrackingEnabled: 1
     m_ModificationDate:
       serializedVersion: 2
-      ticks: 637790022763496243
-    m_Hash: 1644944585
+      ticks: 637794192726226010
+    m_Hash: 1438026283
   m_LockFileStatus:
     m_FilePath: E:/Users/Arthur/GitHub/AbSolitudeV5273OSaneador/Packages/packages-lock.json
     m_PathExists: 1
     m_ContentTrackingEnabled: 1
     m_ModificationDate:
       serializedVersion: 2
-      ticks: 637790022763676247
-    m_Hash: 1639361338
+      ticks: 637794192726326015
+    m_Hash: 997998439
 m_EmbeddedPackageManifests:
   m_ManifestsStatus: {}
 m_PackageAssets:
   m_Packages:
     m_ResolvedPackages:
-    - packageId: com.unity.collab-proxy@1.15.4
+    - packageId: com.unity.collab-proxy@1.15.12
       testable: 0
       isDirectDependency: 1
-      version: 1.15.4
+      version: 1.15.12
       source: 1
-      resolvedPath: E:\Users\Arthur\GitHub\AbSolitudeV5273OSaneador\Library\PackageCache\com.unity.collab-proxy@1.15.4
+      resolvedPath: E:\Users\Arthur\GitHub\AbSolitudeV5273OSaneador\Library\PackageCache\com.unity.collab-proxy@1.15.12
       assetPath: Packages/com.unity.collab-proxy
       name: com.unity.collab-proxy
       displayName: Version Control
@@ -107,13 +107,9 @@ m_PackageAssets:
         - 2.1.0-preview.6
         verified: 1.15.12
       dependencies:
-      - name: com.unity.nuget.newtonsoft-json
-        version: 2.0.0
       - name: com.unity.services.core
         version: 1.0.1
       resolvedDependencies:
-      - name: com.unity.nuget.newtonsoft-json
-        version: 2.0.0
       - name: com.unity.services.core
         version: 1.0.1
       - name: com.unity.modules.unitywebrequest
@@ -144,13 +140,13 @@ m_PackageAssets:
       entitlements:
         isAllowed: 1
       isAssetStorePackage: 0
-      datePublishedTicks: 637726568460000000
+      datePublishedTicks: 637789721280000000
       documentationUrl: 
       hasRepository: 1
       repository:
         type: git
         url: https://github.cds.internal.unity3d.com/unity/com.unity.cloud.collaborate.git
-        revision: 1275603954ad33bee601fe2c9a3c787b3d4e4c6b
+        revision: 5ca1fd4ca9f999e087d19e98afaf99905a582771
         path: 
     - packageId: com.unity.collections@1.1.0
       testable: 0
@@ -272,7 +268,7 @@ m_PackageAssets:
       - name: com.unity.mathematics
         version: 1.2.1
       - name: com.unity.test-framework
-        version: 1.1.29
+        version: 1.1.30
       - name: com.unity.ext.nunit
         version: 1.0.6
       - name: com.unity.modules.imgui
@@ -388,7 +384,7 @@ m_PackageAssets:
         version: 1.1.1
       resolvedDependencies:
       - name: com.unity.test-framework
-        version: 1.1.29
+        version: 1.1.30
       - name: com.unity.ext.nunit
         version: 1.0.6
       - name: com.unity.modules.imgui
@@ -416,12 +412,12 @@ m_PackageAssets:
         url: https://github.cds.internal.unity3d.com/unity/com.unity.ide.rider.git
         revision: abb44f053e9a41d2e00e149e32a19bcec76e98b4
         path: 
-    - packageId: com.unity.ide.visualstudio@2.0.12
+    - packageId: com.unity.ide.visualstudio@2.0.14
       testable: 0
       isDirectDependency: 1
-      version: 2.0.12
+      version: 2.0.14
       source: 1
-      resolvedPath: E:\Users\Arthur\GitHub\AbSolitudeV5273OSaneador\Library\PackageCache\com.unity.ide.visualstudio@2.0.12
+      resolvedPath: E:\Users\Arthur\GitHub\AbSolitudeV5273OSaneador\Library\PackageCache\com.unity.ide.visualstudio@2.0.14
       assetPath: Packages/com.unity.ide.visualstudio
       name: com.unity.ide.visualstudio
       displayName: Visual Studio Editor
@@ -479,7 +475,7 @@ m_PackageAssets:
         version: 1.1.9
       resolvedDependencies:
       - name: com.unity.test-framework
-        version: 1.1.29
+        version: 1.1.30
       - name: com.unity.ext.nunit
         version: 1.0.6
       - name: com.unity.modules.imgui
@@ -499,13 +495,13 @@ m_PackageAssets:
       entitlements:
         isAllowed: 1
       isAssetStorePackage: 0
-      datePublishedTicks: 637720564750000000
+      datePublishedTicks: 637782923640000000
       documentationUrl: 
-      hasRepository: 1
+      hasRepository: 0
       repository:
-        type: git
-        url: https://github.cds.internal.unity3d.com/unity/com.unity.ide.visualstudio.git
-        revision: 8d436ff053b9c59677b5e9799208143553cd02d9
+        type: 
+        url: 
+        revision: 
         path: 
     - packageId: com.unity.ide.vscode@1.2.4
       testable: 0
@@ -578,12 +574,147 @@ m_PackageAssets:
         url: git+https://github.com/Unity-Technologies/com.unity.ide.vscode.git
         revision: 1f4f605d5c988cb610c372b5c5216c46cc8f5d30
         path: 
-    - packageId: com.unity.test-framework@1.1.29
+    - packageId: com.unity.jobs@0.11.0-preview.6
       testable: 0
       isDirectDependency: 1
-      version: 1.1.29
+      version: 0.11.0-preview.6
       source: 1
-      resolvedPath: E:\Users\Arthur\GitHub\AbSolitudeV5273OSaneador\Library\PackageCache\com.unity.test-framework@1.1.29
+      resolvedPath: E:\Users\Arthur\GitHub\AbSolitudeV5273OSaneador\Library\PackageCache\com.unity.jobs@0.11.0-preview.6
+      assetPath: Packages/com.unity.jobs
+      name: com.unity.jobs
+      displayName: Jobs
+      author:
+        name: 
+        email: 
+        url: 
+      category: 
+      type: 
+      description: The Jobs package provides additional job types like IJobParallelForBatch,
+        IJobParallelForDefer, and IJobParallelForFilter.
+      status: 4
+      errors: []
+      versions:
+        all:
+        - 0.0.7-preview.1
+        - 0.0.7-preview.2
+        - 0.0.7-preview.3
+        - 0.0.7-preview.4
+        - 0.0.7-preview.5
+        - 0.0.7-preview.6
+        - 0.0.7-preview.7
+        - 0.0.7-preview.8
+        - 0.0.7-preview.9
+        - 0.0.7-preview.10
+        - 0.0.7-preview.11
+        - 0.0.7-preview.12
+        - 0.0.7-preview.13
+        - 0.1.0-preview
+        - 0.1.1-preview
+        - 0.2.0-preview.13
+        - 0.2.1-preview.3
+        - 0.2.2-preview.6
+        - 0.2.3-preview.9
+        - 0.2.4-preview.11
+        - 0.2.5-preview.20
+        - 0.2.6-preview.13
+        - 0.2.7-preview.11
+        - 0.2.8-preview.3
+        - 0.2.9-preview.15
+        - 0.2.10-preview.11
+        - 0.2.10-preview.12
+        - 0.2.10-preview.13
+        - 0.4.0-preview.18
+        - 0.5.0-preview.14
+        - 0.7.0-preview.17
+        - 0.8.0-preview.23
+        - 0.11.0-preview.5
+        - 0.11.0-preview.6
+        compatible:
+        - 0.0.7-preview.1
+        - 0.0.7-preview.2
+        - 0.0.7-preview.3
+        - 0.0.7-preview.4
+        - 0.0.7-preview.5
+        - 0.0.7-preview.6
+        - 0.0.7-preview.7
+        - 0.0.7-preview.8
+        - 0.0.7-preview.9
+        - 0.0.7-preview.10
+        - 0.0.7-preview.11
+        - 0.0.7-preview.12
+        - 0.0.7-preview.13
+        - 0.1.0-preview
+        - 0.1.1-preview
+        - 0.2.0-preview.13
+        - 0.2.1-preview.3
+        - 0.2.2-preview.6
+        - 0.2.3-preview.9
+        - 0.2.4-preview.11
+        - 0.2.5-preview.20
+        - 0.2.6-preview.13
+        - 0.2.7-preview.11
+        - 0.2.8-preview.3
+        - 0.2.9-preview.15
+        - 0.2.10-preview.11
+        - 0.2.10-preview.12
+        - 0.2.10-preview.13
+        - 0.4.0-preview.18
+        - 0.5.0-preview.14
+        - 0.7.0-preview.17
+        - 0.8.0-preview.23
+        - 0.11.0-preview.5
+        - 0.11.0-preview.6
+        verified: 
+      dependencies:
+      - name: com.unity.collections
+        version: 1.0.0-pre.5
+      - name: com.unity.mathematics
+        version: 1.2.1
+      resolvedDependencies:
+      - name: com.unity.collections
+        version: 1.1.0
+      - name: com.unity.burst
+        version: 1.5.4
+      - name: com.unity.mathematics
+        version: 1.2.1
+      - name: com.unity.test-framework
+        version: 1.1.30
+      - name: com.unity.ext.nunit
+        version: 1.0.6
+      - name: com.unity.modules.imgui
+        version: 1.0.0
+      - name: com.unity.modules.jsonserialize
+        version: 1.0.0
+      keywords:
+      - dots
+      - jobs
+      - unity
+      registry:
+        id: main
+        name: 
+        url: https://packages.unity.com
+        scopes: []
+        isDefault: 1
+        capabilities: 7
+      hasRegistry: 1
+      hideInEditor: 1
+      entitlements:
+        isAllowed: 1
+      isAssetStorePackage: 0
+      datePublishedTicks: 637672551480000000
+      documentationUrl: 
+      hasRepository: 1
+      repository:
+        type: git
+        url: https://github.cds.internal.unity3d.com/unity/dots.git
+        revision: 53e66c888f661f8365c8bd0a2442a79dac229ac4
+        path: 
+    - packageId: com.unity.test-framework@1.1.30
+      testable: 0
+      isDirectDependency: 1
+      version: 1.1.30
+      source: 1
+      resolvedPath: E:\Users\Arthur\GitHub\AbSolitudeV5273OSaneador\Library\PackageCache\com.unity.test-framework@1.1.30
       assetPath: Packages/com.unity.test-framework
       name: com.unity.test-framework
       displayName: Test Framework
@@ -667,13 +798,13 @@ m_PackageAssets:
       entitlements:
         isAllowed: 1
       isAssetStorePackage: 0
-      datePublishedTicks: 637647922650000000
+      datePublishedTicks: 637702469360000000
       documentationUrl: 
       hasRepository: 1
       repository:
         type: git
-        url: git+https://github.com/Unity-Technologies/com.unity.test-framework.git
-        revision: dac53542acdab7a12e9ebf111ac588d0e53cf483
+        url: https://github.com/Unity-Technologies/com.unity.test-framework.git
+        revision: 4a3f541cb46e2f6875b3a938daba8c7113020873
         path: 
     - packageId: com.unity.textmeshpro@3.0.6
       testable: 0
@@ -2868,6 +2999,85 @@ m_PackageAssets:
         url: https://github.cds.internal.unity3d.com/unity/com.unity.ext.nunit.git
         revision: 29ea4d6504a5f58fb3a6934db839aa80ae6d9d88
         path: 
+    - packageId: com.unity.mathematics@1.2.1
+      testable: 0
+      isDirectDependency: 0
+      version: 1.2.1
+      source: 1
+      resolvedPath: E:\Users\Arthur\GitHub\AbSolitudeV5273OSaneador\Library\PackageCache\com.unity.mathematics@1.2.1
+      assetPath: Packages/com.unity.mathematics
+      name: com.unity.mathematics
+      displayName: Mathematics
+      author:
+        name: 
+        email: 
+        url: 
+      category: 
+      type: 
+      description: Unity's C# SIMD math library providing vector types and math functions
+        with a shader like syntax.
+      status: 4
+      errors: []
+      versions:
+        all:
+        - 0.0.12-preview.2
+        - 0.0.12-preview.5
+        - 0.0.12-preview.8
+        - 0.0.12-preview.10
+        - 0.0.12-preview.11
+        - 0.0.12-preview.13
+        - 0.0.12-preview.17
+        - 0.0.12-preview.19
+        - 0.0.12-preview.20
+        - 1.0.0-preview.1
+        - 1.0.1
+        - 1.1.0-preview.1
+        - 1.1.0
+        - 1.2.1
+        - 1.2.4
+        - 1.2.5
+        compatible:
+        - 0.0.12-preview.2
+        - 0.0.12-preview.5
+        - 0.0.12-preview.8
+        - 0.0.12-preview.10
+        - 0.0.12-preview.11
+        - 0.0.12-preview.13
+        - 0.0.12-preview.17
+        - 0.0.12-preview.19
+        - 0.0.12-preview.20
+        - 1.0.0-preview.1
+        - 1.0.1
+        - 1.1.0-preview.1
+        - 1.1.0
+        - 1.2.1
+        - 1.2.4
+        - 1.2.5
+        verified: 1.2.5
+      dependencies: []
+      resolvedDependencies: []
+      keywords:
+      - unity
+      registry:
+        id: main
+        name: 
+        url: https://packages.unity.com
+        scopes: []
+        isDefault: 1
+        capabilities: 7
+      hasRegistry: 1
+      hideInEditor: 1
+      entitlements:
+        isAllowed: 1
+      isAssetStorePackage: 0
+      datePublishedTicks: 637324062630000000
+      documentationUrl: 
+      hasRepository: 1
+      repository:
+        type: git
+        url: git+https://github.com/Unity-Technologies/Unity.Mathematics.git
+        revision: 71412d94b7a0b0fdbb3195a5e6559bf6a761e91a
+        path: 
     - packageId: com.unity.burst@1.5.4
       testable: 0
       isDirectDependency: 0
@@ -3103,82 +3313,6 @@ m_PackageAssets:
         url: https://github.cds.internal.unity3d.com/unity/burst.git
         revision: 1253fdbbb9980df52e2be5de1e0c0ffe54a1dcbf
         path: 
-    - packageId: com.unity.nuget.newtonsoft-json@2.0.0
-      testable: 0
-      isDirectDependency: 0
-      version: 2.0.0
-      source: 1
-      resolvedPath: E:\Users\Arthur\GitHub\AbSolitudeV5273OSaneador\Library\PackageCache\com.unity.nuget.newtonsoft-json@2.0.0
-      assetPath: Packages/com.unity.nuget.newtonsoft-json
-      name: com.unity.nuget.newtonsoft-json
-      displayName: Newtonsoft Json
-      author:
-        name: 
-        email: 
-        url: 
-      category: 
-      type: 
-      description: 'Newtonsoft Json for use in Unity projects and Unity packages.
-        Currently synced to version 12.0.2.
-
-
-        This package is used for advanced
-        json serialization and deserialization. Most Unity users will be better suited
-        using the existing json tools built into Unity.
-
-        To avoid assembly
-        clashes, please use this package if you intend to use Newtonsoft Json.'
-      status: 4
-      errors: []
-      versions:
-        all:
-        - 1.0.0-preview.2
-        - 1.0.0-preview.3
-        - 1.0.0-preview.4
-        - 1.0.1-preview.1
-        - 1.1.2
-        - 2.0.0-preview
-        - 2.0.0-preview.1
-        - 2.0.0-preview.2
-        - 2.0.0
-        - 2.0.1-preview.1
-        - 2.0.2
-        compatible:
-        - 1.0.0-preview.2
-        - 1.0.0-preview.3
-        - 1.0.0-preview.4
-        - 1.0.1-preview.1
-        - 1.1.2
-        - 2.0.0-preview
-        - 2.0.0-preview.1
-        - 2.0.0-preview.2
-        - 2.0.0
-        - 2.0.1-preview.1
-        - 2.0.2
-        verified: 2.0.2
-      dependencies: []
-      resolvedDependencies: []
-      keywords: []
-      registry:
-        id: main
-        name: 
-        url: https://packages.unity.com
-        scopes: []
-        isDefault: 1
-        capabilities: 7
-      hasRegistry: 1
-      hideInEditor: 1
-      entitlements:
-        isAllowed: 1
-      isAssetStorePackage: 0
-      datePublishedTicks: 637237898320000000
-      documentationUrl: 
-      hasRepository: 1
-      repository:
-        type: git
-        url: https://github.cds.internal.unity3d.com/unity/com.unity.nuget.newtonsoft-json.git
-        revision: d2fd6ed876261bbd82f59199ad711e7667bf633a
-        path: 
     - packageId: com.unity.services.core@1.0.1
       testable: 0
       isDirectDependency: 0
@@ -3245,85 +3379,6 @@ m_PackageAssets:
         type: git
         url: https://github.cds.internal.unity3d.com/unity/operate-services-sdk.git
         revision: 4cd880d4fd5c60597629249bf4f324e4c8d7aa2e
-        path: 
-    - packageId: com.unity.mathematics@1.2.1
-      testable: 0
-      isDirectDependency: 0
-      version: 1.2.1
-      source: 1
-      resolvedPath: E:\Users\Arthur\GitHub\AbSolitudeV5273OSaneador\Library\PackageCache\com.unity.mathematics@1.2.1
-      assetPath: Packages/com.unity.mathematics
-      name: com.unity.mathematics
-      displayName: Mathematics
-      author:
-        name: 
-        email: 
-        url: 
-      category: 
-      type: 
-      description: Unity's C# SIMD math library providing vector types and math functions
-        with a shader like syntax.
-      status: 4
-      errors: []
-      versions:
-        all:
-        - 0.0.12-preview.2
-        - 0.0.12-preview.5
-        - 0.0.12-preview.8
-        - 0.0.12-preview.10
-        - 0.0.12-preview.11
-        - 0.0.12-preview.13
-        - 0.0.12-preview.17
-        - 0.0.12-preview.19
-        - 0.0.12-preview.20
-        - 1.0.0-preview.1
-        - 1.0.1
-        - 1.1.0-preview.1
-        - 1.1.0
-        - 1.2.1
-        - 1.2.4
-        - 1.2.5
-        compatible:
-        - 0.0.12-preview.2
-        - 0.0.12-preview.5
-        - 0.0.12-preview.8
-        - 0.0.12-preview.10
-        - 0.0.12-preview.11
-        - 0.0.12-preview.13
-        - 0.0.12-preview.17
-        - 0.0.12-preview.19
-        - 0.0.12-preview.20
-        - 1.0.0-preview.1
-        - 1.0.1
-        - 1.1.0-preview.1
-        - 1.1.0
-        - 1.2.1
-        - 1.2.4
-        - 1.2.5
-        verified: 1.2.5
-      dependencies: []
-      resolvedDependencies: []
-      keywords:
-      - unity
-      registry:
-        id: main
-        name: 
-        url: https://packages.unity.com
-        scopes: []
-        isDefault: 1
-        capabilities: 7
-      hasRegistry: 1
-      hideInEditor: 1
-      entitlements:
-        isAllowed: 1
-      isAssetStorePackage: 0
-      datePublishedTicks: 637324062630000000
-      documentationUrl: 
-      hasRepository: 1
-      repository:
-        type: git
-        url: git+https://github.com/Unity-Technologies/Unity.Mathematics.git
-        revision: 71412d94b7a0b0fdbb3195a5e6559bf6a761e91a
         path: 
   m_LocalPackages:
     m_LocalFileStatus: []

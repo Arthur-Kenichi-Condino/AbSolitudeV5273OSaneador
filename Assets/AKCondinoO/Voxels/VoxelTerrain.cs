@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using Unity.Collections;
+using Unity.Jobs;
 using UnityEngine;
 using UnityEngine.Rendering;
 using static AKCondinoO.Voxels.VoxelSystem;
@@ -13,12 +14,25 @@ namespace AKCondinoO.Voxels{
         internal readonly object synchronizer=new object();
         internal Bounds worldBounds=new Bounds(Vector3.zero,new Vector3(Width,Height,Depth));
         MeshFilter filter;
+        struct BakeJob:IJob{
+         public int meshId;
+         public void Execute(){
+          Physics.BakeMesh(meshId,false);
+         }
+        }
+        BakeJob bakeJob;
+        JobHandle bakeJobHandle;
+        internal MeshCollider meshCollider;
         void Awake(){
          mesh=new Mesh(){
           bounds=worldBounds,
          };
+         bakeJob=new BakeJob(){
+          meshId=mesh.GetInstanceID(),
+         };
          filter=GetComponent<MeshFilter>();
          filter.mesh=mesh;
+         meshCollider=GetComponent<MeshCollider>();
         }
         internal LinkedListNode<VoxelTerrain>expropriated;
         internal void OnInstantiated(){
@@ -44,19 +58,25 @@ namespace AKCondinoO.Voxels{
         internal void OnEdited(){
          pendingEditChanges=true;
         }
+        bool waitingBakeJob;
         bool waitingMarchingCubes;
         bool pendingMovement;
         bool pendingEditChanges;
         internal void ManualUpdate(){
-            if(waitingMarchingCubes&&OnMeshDataSet()){
-               waitingMarchingCubes=false;
+            if(waitingBakeJob&&OnMeshBaked()){
+               waitingBakeJob=false;
             }else{
-                if(pendingMovement&&OnApplyingMovement()){
-                   pendingMovement=false;
-                    OnMovementApplied();
-                }else if(pendingEditChanges&&OnPushingEditChanges()){
-                         pendingEditChanges=false;
-                    OnEditChangesPushed();
+                if(waitingMarchingCubes&&OnMeshDataSet()){
+                   waitingMarchingCubes=false;
+                    OnBakingMesh();
+                }else{
+                    if(pendingMovement&&OnApplyingMovement()){
+                       pendingMovement=false;
+                        OnMovementApplied();
+                    }else if(pendingEditChanges&&OnPushingEditChanges()){
+                             pendingEditChanges=false;
+                        OnEditChangesPushed();
+                    }
                 }
             }
         }
@@ -113,6 +133,20 @@ namespace AKCondinoO.Voxels{
           mesh.SetSubMesh(0,new SubMeshDescriptor(0,marchingCubesBG.TempTri.Length){firstVertex=0,vertexCount=marchingCubesBG.TempVer.Length},meshFlags);
           mesh.OptimizeIndexBuffers();
           mesh.OptimizeReorderVertexBuffer();
+          return true;
+         }
+         return false;
+        }
+        void OnBakingMesh(){
+         bakeJobHandle.Complete();
+         bakeJobHandle=bakeJob.Schedule();
+         waitingBakeJob=true;
+        }
+        bool OnMeshBaked(){
+         if(bakeJobHandle.IsCompleted){
+          bakeJobHandle.Complete();
+          meshCollider.sharedMesh=null;
+          meshCollider.sharedMesh=mesh;
           return true;
          }
          return false;

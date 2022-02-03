@@ -233,8 +233,10 @@ namespace AKCondinoO.Sims{
 
              foreach(var kvp2 in idPersistentDataListBycnkIdx){int cnkIdx=kvp2.Key;var idPersistentDataList=kvp2.Value;
               stringBuilder.AppendFormat("{{ cnkIdx={0} , {{ ",cnkIdx);
-              foreach(var idPersistentData in idPersistentDataList){
+              foreach(var idPersistentData in idPersistentDataList){ulong id=idPersistentData.id;SimObject.PersistentData persistentData=idPersistentData.persistentData;
+               stringBuilder.AppendFormat("{{ id={0}, persistentData={{ position={1}, }} }}, ",id,persistentData.position);
               }
+              stringBuilder.AppendFormat("}} }}, {0}",Environment.NewLine);
              }
              Debug.Log(stringBuilder.ToString());
 

@@ -314,7 +314,7 @@ namespace AKCondinoO.Voxels{
           }
          }
          if(VoxelTerrain.MarchingCubesMultithreaded.Clear()!=0){
-          Logger.Error("terrain Marching Cubes tasks will stop with pending work");
+          Logger.Error("terrain MarchingCubes tasks will stop with pending work");
          }
          VoxelTerrain.MarchingCubesMultithreaded.Stop=true;for(int i=0;i<marchingCubesBGThreads.Length;++i){marchingCubesBGThreads[i].Wait();
           marchingCubesBGThreads[i].editsFileStream      .Dispose();

@@ -530,6 +530,7 @@ namespace AKCondinoO.Voxels{
          fileStreamReader.DiscardBufferedData();
          string line;
          while((line=fileStreamReader.ReadLine())!=null){
+          if(string.IsNullOrEmpty(line)){continue;}
           int cnkIdxStringEnd=GetcnkIdxFromFileLine(line,out int cnkIdx);
           if(cnkIdxValuesToRead.Contains(cnkIdx)){
            int vCoordStringStart=cnkIdxStringEnd+2;
@@ -553,6 +554,7 @@ namespace AKCondinoO.Voxels{
          fileStreamReader.DiscardBufferedData();
          string line;
          while((line=fileStreamReader.ReadLine())!=null){
+          if(string.IsNullOrEmpty(line)){continue;}
           int cnkIdxStringEnd=GetcnkIdxFromFileLine(line,out int cnkIdx);
           if(data.ContainsKey(cnkIdx)){
            //Logger.Debug("WriteFile merge edits for cnkIdx:"+cnkIdx);

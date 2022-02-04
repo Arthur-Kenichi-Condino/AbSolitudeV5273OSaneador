@@ -1,5 +1,9 @@
+#if UNITY_EDITOR
+    #define ENABLE_DEBUG_LOG
+#endif
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -31,10 +35,9 @@ namespace AKCondinoO{
         }
     }
     internal static class Logger{
+        [Conditional("ENABLE_DEBUG_LOG")]
         internal static void Debug(string logMsg){
-            #if UNITY_EDITOR
-                UnityEngine.Debug.Log(logMsg);
-            #endif
+            UnityEngine.Debug.Log(logMsg);
         }
         internal static void Error(string logMsg){
             //  Always log errors

@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 using UnityEngine;
 using static AKCondinoO.Sims.SimObject;
 using static AKCondinoO.Voxels.VoxelSystem;
@@ -15,6 +16,7 @@ namespace AKCondinoO.Sims{
         internal readonly Dictionary<Type,GameObject>SimObjectPrefabs=new Dictionary<Type,GameObject>();
         void Awake(){if(Singleton==null){Singleton=this;}else{DestroyImmediate(this);return;}
          Core.Singleton.OnDestroyingCoreEvent+=OnDestroyingCoreEvent;
+         simObjectSpawnSynchronization.Clear();
          PersistentDataSavingMultithreaded.Stop=false;persistentDataSavingBGThread=new PersistentDataSavingMultithreaded();
          foreach(var o in Resources.LoadAll("AKCondinoO/",typeof(GameObject))){var gO=(GameObject)o;var sO=gO.GetComponent<SimObject>();if(sO==null)continue;
           Type t=sO.GetType();
@@ -56,6 +58,7 @@ namespace AKCondinoO.Sims{
         internal readonly Dictionary<Type,LinkedList<SimObject>>pool=new Dictionary<Type,LinkedList<SimObject>>();
          internal readonly Dictionary<(Type simType,ulong number),SimObject>active=new Dictionary<(Type,ulong),SimObject>();
         readonly SpawnData spawnData=new SpawnData();
+        bool savingPersistentData;
         void Update(){
          if(DEBUG_CREATE_SIM_OBJECT!=null){
           if(spawnData.dequeued){
@@ -84,8 +87,13 @@ namespace AKCondinoO.Sims{
            persistentDataTimeToLive.Remove(id);
           }
          }
-         if(DEBUG_SAVE_PENDING_PERSISTENT_DATA&&OnPendingPersistentDataPushToFile()){
-            DEBUG_SAVE_PENDING_PERSISTENT_DATA=false;
+         if(savingPersistentData&&OnPendingPersistentDataSaved()){
+            savingPersistentData=false;
+         }else{
+             if(DEBUG_SAVE_PENDING_PERSISTENT_DATA&&OnPendingPersistentDataPushToFile()){
+                DEBUG_SAVE_PENDING_PERSISTENT_DATA=false;
+                OnPendingPersistentDataPushedToFile();
+             }
          }
          foreach(var a in active){var sO=a.Value;
           sO.ManualUpdate();
@@ -97,6 +105,15 @@ namespace AKCondinoO.Sims{
         bool OnPendingPersistentDataPushToFile(){
          if(persistentDataSavingBG.IsCompleted(persistentDataSavingBGThread.IsRunning)){
           PersistentDataSavingMultithreaded.Schedule(persistentDataSavingBG);
+          return true;
+         }
+         return false;
+        }
+        void OnPendingPersistentDataPushedToFile(){
+         savingPersistentData=true;
+        }
+        bool OnPendingPersistentDataSaved(){
+         if(persistentDataSavingBG.IsCompleted(persistentDataSavingBGThread.IsRunning)){
           return true;
          }
          return false;
@@ -122,6 +139,7 @@ namespace AKCondinoO.Sims{
           while(SpawnQueue.TryDequeue(out SpawnData toSpawn)){
            Logger.Debug("toSpawn.at.Count:"+toSpawn.at.Count);
            foreach(var at in toSpawn.at){
+            while(savingPersistentData)yield return null;
             Type simType=at.type;
             ulong number;
             if(at.id==null){
@@ -149,6 +167,7 @@ namespace AKCondinoO.Sims{
             }else{
              gO=Instantiate(SimObjectPrefabs[at.type],transform);
               sO=gO.GetComponent<SimObject>();
+             simObjectSpawnSynchronization.Add(sO,sO.synchronizer);
             }
             persistentDataTimeToLive.Remove(id);
             persistentDataCache.TryAdd(id,new SimObject.PersistentData());
@@ -169,6 +188,21 @@ namespace AKCondinoO.Sims{
          sO.pooled=pool[sO.id.Value.simType].AddLast(sO);
          sO.id=null;
         }
+        internal static readonly Dictionary<SimObject,object>simObjectSpawnSynchronization=new Dictionary<SimObject,object>();
+        #region loading
+        internal class PersistentDataLoadingBackgroundContainer:BackgroundContainer{
+        }
+        internal class PersistentDataLoadingMultithreaded:BaseMultithreaded<PersistentDataLoadingBackgroundContainer>{
+         internal readonly Dictionary<Type,FileStream>fileStream=new Dictionary<Type,FileStream>();
+          internal readonly Dictionary<Type,StreamWriter>fileStreamWriter=new Dictionary<Type,StreamWriter>();
+          internal readonly Dictionary<Type,StreamReader>fileStreamReader=new Dictionary<Type,StreamReader>();            
+         protected override void Execute(){
+          lock(simObjectSpawnSynchronization){
+          }   
+         }
+        }
+        #endregion
+        #region saving
         internal readonly PersistentDataSavingBackgroundContainer persistentDataSavingBG=new PersistentDataSavingBackgroundContainer();
         internal class PersistentDataSavingBackgroundContainer:BackgroundContainer{
          internal readonly Dictionary<Type,ConcurrentDictionary<ulong,SimObject.PersistentData>>data=new Dictionary<Type,ConcurrentDictionary<ulong,SimObject.PersistentData>>();
@@ -179,6 +213,7 @@ namespace AKCondinoO.Sims{
           internal readonly Dictionary<Type,StreamWriter>fileStreamWriter=new Dictionary<Type,StreamWriter>();
           internal readonly Dictionary<Type,StreamReader>fileStreamReader=new Dictionary<Type,StreamReader>();
            internal readonly StringBuilder stringBuilder=new StringBuilder();
+            internal readonly StringBuilder lineStringBuilder=new StringBuilder();
          readonly Dictionary<Type,Dictionary<int,List<(ulong id,SimObject.PersistentData persistentData)>>>idPersistentDataListBycnkIdxByType=new Dictionary<Type,Dictionary<int,List<(ulong,SimObject.PersistentData)>>>();
           internal static readonly ConcurrentQueue<List<(ulong id,SimObject.PersistentData persistentData)>>idPersistentDataListPool=new ConcurrentQueue<List<(ulong,SimObject.PersistentData)>>();
          readonly Dictionary<Type,List<ulong>>idListByType=new Dictionary<Type,List<ulong>>();
@@ -200,10 +235,17 @@ namespace AKCondinoO.Sims{
 
 
                 // TO DO: lock syn, save ids and released ids, make loader thread for each sim object and loader to get ids and released ids and which sim objects to load
-                container.data[typeof(SimObject)].TryAdd(0,new PersistentData());//AddOrUpdate
-                container.data[typeof(SimObject)].TryAdd(1,new PersistentData());
+                //container.data[typeof(SimObject)].TryAdd(0,new PersistentData());//AddOrUpdate
+                //container.data[typeof(SimObject)].TryAdd(1,new PersistentData());
+                //container.data[typeof(SimObject)].TryAdd(2,new PersistentData());//AddOrUpdate
+                //container.data[typeof(SimObject)].TryAdd(3,new PersistentData());
 
-                
+
+          lock(simObjectSpawnSynchronization){    
+           foreach(var syn in simObjectSpawnSynchronization)Monitor.Enter(syn.Value);
+           try{
+
+
             //Logger.Debug("before saving idPersistentDataListPool.Count:"+idPersistentDataListPool.Count);
             foreach(var typePersistentDataToSavePair in container.data){Type t=typePersistentDataToSavePair.Key;var persistentDataToSave=typePersistentDataToSavePair.Value;
              //Logger.Debug("before saving type:"+t+", pending PersistentData to save:"+persistentDataToSave.Count);
@@ -244,6 +286,10 @@ namespace AKCondinoO.Sims{
              fileStreamReader.DiscardBufferedData();
              string line;
              while((line=fileStreamReader.ReadLine())!=null){
+              if(string.IsNullOrEmpty(line)){continue;}
+              int totalCharactersRemoved=0;
+              lineStringBuilder.Clear();
+              lineStringBuilder.Append(line);
 
               int cnkIdxStringStart=line.IndexOf("cnkIdx=")+7;
               int cnkIdxStringEnd=line.IndexOf(" ,",cnkIdxStringStart);
@@ -252,6 +298,7 @@ namespace AKCondinoO.Sims{
               Logger.Debug("process file at cnkIdx:"+cnkIdx);
               processedcnkIdx.Add(cnkIdx);
               int simObjectStringStart=cnkIdxStringEnd+2;
+              int endOfLineStart=simObjectStringStart;
               while((simObjectStringStart=line.IndexOf("simObject=",simObjectStringStart))>=0){
                int simObjectStringEnd=line.IndexOf("}, ",simObjectStringStart)+3;
                string simObjectString=line.Substring(simObjectStringStart,simObjectStringEnd-simObjectStringStart);
@@ -262,15 +309,22 @@ namespace AKCondinoO.Sims{
                Logger.Debug("id:"+id);
 
                if(idListByType[t].Contains(id)){
-                line=line.Remove(simObjectStringStart,simObjectStringEnd-simObjectStringStart);
+                //line=line.Remove(simObjectStringStart,simObjectStringEnd-simObjectStringStart);
+                int toRemoveLength=simObjectStringEnd-totalCharactersRemoved-(simObjectStringStart-totalCharactersRemoved);
+                lineStringBuilder.Remove(simObjectStringStart-totalCharactersRemoved,toRemoveLength);
+                totalCharactersRemoved+=toRemoveLength;
                }
 
-               simObjectStringStart=simObjectStringEnd-(simObjectStringEnd-simObjectStringStart);
+               simObjectStringStart=simObjectStringEnd;
+               endOfLineStart=simObjectStringStart;
               }
 
-              int endOfLineStart=line.IndexOf("} }, ");
+              endOfLineStart=line.IndexOf("} }, ",endOfLineStart);
               int endOfLineEnd=line.IndexOf(", ",endOfLineStart)+2;
-              line=line.Remove(endOfLineStart,endOfLineEnd-endOfLineStart);
+              lineStringBuilder.Remove(endOfLineStart-totalCharactersRemoved,endOfLineEnd-totalCharactersRemoved-(endOfLineStart-totalCharactersRemoved));
+
+              line=lineStringBuilder.ToString();
+
               stringBuilder.Append(line);
               if(idPersistentDataListBycnkIdx.ContainsKey(cnkIdx)){
                foreach(var idPersistentData in idPersistentDataListBycnkIdx[cnkIdx]){ulong id=idPersistentData.id;SimObject.PersistentData persistentData=idPersistentData.persistentData;
@@ -296,7 +350,16 @@ namespace AKCondinoO.Sims{
 
             }
             Logger.Debug("after saving idPersistentDataListPool.Count:"+idPersistentDataListPool.Count);
+
+
+           }catch{
+            throw;
+           }finally{
+            foreach(var syn in simObjectSpawnSynchronization)Monitor.Exit(syn.Value);
+           }
+          }
          }
         }
+        #endregion
     }
 }

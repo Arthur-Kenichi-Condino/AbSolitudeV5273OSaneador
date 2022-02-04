@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 namespace AKCondinoO.Sims{
     internal class SimObject:MonoBehaviour{
-        internal readonly object syn=new object(); 
+        internal readonly object synchronizer=new object();
         protected virtual void Awake(){
         }
         internal LinkedListNode<SimObject>pooled;       

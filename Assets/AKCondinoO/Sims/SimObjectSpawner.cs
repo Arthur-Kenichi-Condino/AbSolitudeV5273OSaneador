@@ -84,7 +84,6 @@ namespace AKCondinoO.Sims{
            persistentDataTimeToLive.Remove(id);
           }
          }
-         //Debug.Log("persistentDataCache.Count:"+persistentDataCache.Count);
          if(DEBUG_SAVE_PENDING_PERSISTENT_DATA&&OnPendingPersistentDataPushToFile()){
             DEBUG_SAVE_PENDING_PERSISTENT_DATA=false;
          }
@@ -182,6 +181,8 @@ namespace AKCondinoO.Sims{
            internal readonly StringBuilder stringBuilder=new StringBuilder();
          readonly Dictionary<Type,Dictionary<int,List<(ulong id,SimObject.PersistentData persistentData)>>>idPersistentDataListBycnkIdxByType=new Dictionary<Type,Dictionary<int,List<(ulong,SimObject.PersistentData)>>>();
           internal static readonly ConcurrentQueue<List<(ulong id,SimObject.PersistentData persistentData)>>idPersistentDataListPool=new ConcurrentQueue<List<(ulong,SimObject.PersistentData)>>();
+         readonly Dictionary<Type,List<ulong>>idListByType=new Dictionary<Type,List<ulong>>();
+         readonly List<int>processedcnkIdx=new List<int>();
          protected override void Cleanup(){
           //  pool lists
           foreach(var kvp1 in idPersistentDataListBycnkIdxByType){var idPersistentDataListBycnkIdx=kvp1.Value;
@@ -190,6 +191,9 @@ namespace AKCondinoO.Sims{
             idPersistentDataListPool.Enqueue(idPersistentDataList);
            }
            idPersistentDataListBycnkIdx.Clear();
+          }
+          foreach(var kvp in idListByType){var idList=kvp.Value;
+           idList.Clear();
           }
          }
          protected override void Execute(){
@@ -200,12 +204,15 @@ namespace AKCondinoO.Sims{
                 container.data[typeof(SimObject)].TryAdd(1,new PersistentData());
 
                 
-            Logger.Debug("before saving idPersistentDataListPool.Count:"+idPersistentDataListPool.Count);
+            //Logger.Debug("before saving idPersistentDataListPool.Count:"+idPersistentDataListPool.Count);
             foreach(var typePersistentDataToSavePair in container.data){Type t=typePersistentDataToSavePair.Key;var persistentDataToSave=typePersistentDataToSavePair.Value;
-             Logger.Debug("before saving type:"+t+", pending PersistentData to save:"+persistentDataToSave.Count);
+             //Logger.Debug("before saving type:"+t+", pending PersistentData to save:"+persistentDataToSave.Count);
+             if(!idListByType.ContainsKey(t)){
+              idListByType.Add(t,new List<ulong>());
+             }
              foreach(var idPersistentDataPair in persistentDataToSave){ulong id=idPersistentDataPair.Key;
               if(persistentDataToSave.TryRemove(id,out SimObject.PersistentData persistentData)){
-               Logger.Debug("saving sim object of type:"+t+", with id:"+id+", at:"+persistentData.position);
+               //Logger.Debug("saving sim object of type:"+t+", with id:"+id+", at:"+persistentData.position);
                Vector2Int cCoord=vecPosTocCoord(persistentData.position);
                int cnkIdx=GetcnkIdx(cCoord.x,cCoord.y);
                if(!idPersistentDataListBycnkIdxByType.ContainsKey(t)){
@@ -219,11 +226,13 @@ namespace AKCondinoO.Sims{
                 }
                }
                idPersistentDataListBycnkIdxByType[t][cnkIdx].Add((id,persistentData));
+               idListByType[t].Add(id);
               }
              }
-             Logger.Debug("will now save all of type:"+t+", still pending PersistentData to save for later:"+persistentDataToSave.Count);
+             //Logger.Debug("will now save all of type:"+t+", still pending PersistentData to save for later:"+persistentDataToSave.Count);
             }
             foreach(var kvp1 in idPersistentDataListBycnkIdxByType){Type t=kvp1.Key;var idPersistentDataListBycnkIdx=kvp1.Value;
+             processedcnkIdx.Clear();
              FileStream fileStream=this.fileStream[t];
              StreamWriter fileStreamWriter=this.fileStreamWriter[t];
              StreamReader fileStreamReader=this.fileStreamReader[t];
@@ -231,14 +240,57 @@ namespace AKCondinoO.Sims{
                     
 
 
+             fileStream.Position=0L;
+             fileStreamReader.DiscardBufferedData();
+             string line;
+             while((line=fileStreamReader.ReadLine())!=null){
+
+              int cnkIdxStringStart=line.IndexOf("cnkIdx=")+7;
+              int cnkIdxStringEnd=line.IndexOf(" ,",cnkIdxStringStart);
+              int cnkIdxStringLength=cnkIdxStringEnd-cnkIdxStringStart;
+              int cnkIdx=int.Parse(line.Substring(cnkIdxStringStart,cnkIdxStringLength));
+              Logger.Debug("process file at cnkIdx:"+cnkIdx);
+              processedcnkIdx.Add(cnkIdx);
+              int simObjectStringStart=cnkIdxStringEnd+2;
+              while((simObjectStringStart=line.IndexOf("simObject=",simObjectStringStart))>=0){
+               int simObjectStringEnd=line.IndexOf("}, ",simObjectStringStart)+3;
+               string simObjectString=line.Substring(simObjectStringStart,simObjectStringEnd-simObjectStringStart);
+               Logger.Debug("simObjectString:"+simObjectString);
+               int idStringStart=simObjectString.IndexOf("id=")+3;
+               int idStringEnd=simObjectString.IndexOf(", ",idStringStart);
+               ulong id=ulong.Parse(simObjectString.Substring(idStringStart,idStringEnd-idStringStart));
+               Logger.Debug("id:"+id);
+
+               if(idListByType[t].Contains(id)){
+                line=line.Remove(simObjectStringStart,simObjectStringEnd-simObjectStringStart);
+               }
+
+               simObjectStringStart=simObjectStringEnd-(simObjectStringEnd-simObjectStringStart);
+              }
+
+              int endOfLineStart=line.IndexOf("} }, ");
+              int endOfLineEnd=line.IndexOf(", ",endOfLineStart)+2;
+              line=line.Remove(endOfLineStart,endOfLineEnd-endOfLineStart);
+              stringBuilder.Append(line);
+              if(idPersistentDataListBycnkIdx.ContainsKey(cnkIdx)){
+               foreach(var idPersistentData in idPersistentDataListBycnkIdx[cnkIdx]){ulong id=idPersistentData.id;SimObject.PersistentData persistentData=idPersistentData.persistentData;
+                stringBuilder.AppendFormat("simObject={{ id={0}, persistentData={{ position={1}, }} }}, ",id,persistentData.position);
+               }
+              }
+              stringBuilder.AppendFormat("}} }}, {0}",Environment.NewLine);
+
+             }
              foreach(var kvp2 in idPersistentDataListBycnkIdx){int cnkIdx=kvp2.Key;var idPersistentDataList=kvp2.Value;
+              if(processedcnkIdx.Contains(cnkIdx)){continue;}
               stringBuilder.AppendFormat("{{ cnkIdx={0} , {{ ",cnkIdx);
               foreach(var idPersistentData in idPersistentDataList){ulong id=idPersistentData.id;SimObject.PersistentData persistentData=idPersistentData.persistentData;
-               stringBuilder.AppendFormat("{{ id={0}, persistentData={{ position={1}, }} }}, ",id,persistentData.position);
+               stringBuilder.AppendFormat("simObject={{ id={0}, persistentData={{ position={1}, }} }}, ",id,persistentData.position);
               }
               stringBuilder.AppendFormat("}} }}, {0}",Environment.NewLine);
              }
-             Debug.Log(stringBuilder.ToString());
+             fileStream.SetLength(0L);
+             fileStreamWriter.Write(stringBuilder.ToString());
+             fileStreamWriter.Flush();
 
 
 

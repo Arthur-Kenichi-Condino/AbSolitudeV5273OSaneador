@@ -464,7 +464,6 @@ namespace AKCondinoO.Voxels{
                Math.Abs(cCoord1.y)>=MaxcCoordy){
              goto _skip;
             }
-            //Debug.Log("instantiation at:"+cCoord1);
             int cnkIdx1=GetcnkIdx(cCoord1.x,cCoord1.y);
             if(!terrainActive.TryGetValue(cnkIdx1,out VoxelTerrain cnk)){
              cnk=terrainPool.First.Value;

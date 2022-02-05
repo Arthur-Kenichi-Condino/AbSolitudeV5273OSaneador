@@ -314,7 +314,7 @@ namespace AKCondinoO.Voxels{
           }
          }
          if(VoxelTerrain.MarchingCubesMultithreaded.Clear()!=0){
-          Logger.Error("terrain MarchingCubes tasks will stop with pending work");
+          //Logger.Error("terrain MarchingCubes tasks will stop with pending work");
          }
          VoxelTerrain.MarchingCubesMultithreaded.Stop=true;for(int i=0;i<marchingCubesBGThreads.Length;++i){marchingCubesBGThreads[i].Wait();
           marchingCubesBGThreads[i].editsFileStream      .Dispose();
@@ -322,7 +322,7 @@ namespace AKCondinoO.Voxels{
          }
          terrainEditingBG.IsCompleted(terrainEditingBGThread.IsRunning,-1);
          if(TerrainEditingMultithreaded.Clear()!=0){
-          Logger.Error("TerrainEditing task will stop with pending work");
+          //Logger.Error("TerrainEditing task will stop with pending work");
          }
          TerrainEditingMultithreaded.Stop=true;terrainEditingBGThread.Wait();
          terrainEditingBGThread.editsFileStreamWriter.Dispose();

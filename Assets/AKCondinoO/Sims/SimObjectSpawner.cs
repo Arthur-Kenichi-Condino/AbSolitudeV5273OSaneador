@@ -20,6 +20,51 @@ namespace AKCondinoO.Sims{
          Core.Singleton.OnDestroyingCoreEvent+=OnDestroyingCoreEvent;
                  idsFile=string.Format("{0}{1}",Core.savePath,        "ids.txt");
          releasedIdsFile=string.Format("{0}{1}",Core.savePath,"releasedIds.txt");
+         lock(simObjectSpawnSynchronization){
+          FileStream idsFileStream=new FileStream(SimObjectSpawner.idsFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
+           StreamReader idsFileStreamReader=new StreamReader(idsFileStream); 
+          idsFileStream.Position=0L;
+          idsFileStreamReader.DiscardBufferedData();
+          string line;
+          while((line=idsFileStreamReader.ReadLine())!=null){
+           if(string.IsNullOrEmpty(line)){continue;}
+           int typeStringStart=line.IndexOf("type=")+5;
+           int typeStringEnd=line.IndexOf(", ",typeStringStart);
+           string typeString=line.Substring(typeStringStart,typeStringEnd-typeStringStart);
+           Type t=Type.GetType(typeString);
+           int idCountStringStart=line.IndexOf("idCount=",typeStringEnd)+8;
+           int idCountStringEnd=line.IndexOf(" }, ",idCountStringStart);
+           string idCountString=line.Substring(idCountStringStart,idCountStringEnd-idCountStringStart);
+           ulong idCount=ulong.Parse(idCountString);
+           ids[t]=idCount;
+          }
+          FileStream releasedIdsFileStream=new FileStream(SimObjectSpawner.releasedIdsFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
+           StreamReader releasedIdsFileStreamReader=new StreamReader(releasedIdsFileStream);
+          releasedIdsFileStream.Position=0L;
+          releasedIdsFileStreamReader.DiscardBufferedData();
+          while((line=releasedIdsFileStreamReader.ReadLine())!=null){
+           if(string.IsNullOrEmpty(line)){continue;}
+           int typeStringStart=line.IndexOf("type=")+5;
+           int typeStringEnd=line.IndexOf(", ",typeStringStart);
+           string typeString=line.Substring(typeStringStart,typeStringEnd-typeStringStart);
+           Type t=Type.GetType(typeString);
+           releasedIds[t]=new List<ulong>();
+           int releasedIdsListStringStart=line.IndexOf("{ ",typeStringEnd)+2;
+           int releasedIdsListStringEnd=line.IndexOf(", }, ",releasedIdsListStringStart);
+           if(releasedIdsListStringEnd>=0){
+            string releasedIdsListString=line.Substring(releasedIdsListStringStart,releasedIdsListStringEnd-releasedIdsListStringStart);
+            string[]idStrings=releasedIdsListString.Split(',');
+            foreach(var idString in idStrings){
+             ulong id=ulong.Parse(idString.Replace(" ",""));
+             releasedIds[t].Add(id);
+            }
+           }
+          }
+          idsFileStream      .Dispose();
+          idsFileStreamReader.Dispose();
+          releasedIdsFileStream      .Dispose();
+          releasedIdsFileStreamReader.Dispose();
+         }
          simObjectSpawnSynchronization.Clear();
          PersistentDataSavingMultithreaded.Stop=false;persistentDataSavingBGThread=new PersistentDataSavingMultithreaded();
          foreach(var o in Resources.LoadAll("AKCondinoO/",typeof(GameObject))){var gO=(GameObject)o;var sO=gO.GetComponent<SimObject>();if(sO==null)continue;
@@ -35,7 +80,7 @@ namespace AKCondinoO.Sims{
           persistentDataSavingBGThread.fileStreamWriter[t]=new StreamWriter(fileStream);
           persistentDataSavingBGThread.fileStreamReader[t]=new StreamReader(fileStream);
          }
-         while(SpawnQueue.TryDequeue(out _));
+         SpawnQueue.Clear();
          StartCoroutine(SpawnCoroutine());
         }
         void OnDestroyingCoreEvent(object sender,EventArgs e){
@@ -185,7 +230,7 @@ namespace AKCondinoO.Sims{
           at=new List<(Vector3,Vector3,Vector3,Type,ulong?)>(capacity);
          }
         }
-        internal static readonly ConcurrentQueue<SpawnData>SpawnQueue=new ConcurrentQueue<SpawnData>();
+        internal static readonly Queue<SpawnData>SpawnQueue=new Queue<SpawnData>();
         WaitUntil waitSpawnQueue;
         IEnumerator SpawnCoroutine(){
          waitSpawnQueue=new WaitUntil(()=>{
@@ -193,7 +238,7 @@ namespace AKCondinoO.Sims{
          });
          Loop:{
           yield return waitSpawnQueue;
-          while(SpawnQueue.TryDequeue(out SpawnData toSpawn)){
+          while(SpawnQueue.Count>0){SpawnData toSpawn=SpawnQueue.Dequeue();
            Logger.Debug("toSpawn.at.Count:"+toSpawn.at.Count);
            foreach(var at in toSpawn.at){
             while(savingPersistentData)yield return null;

@@ -9,18 +9,28 @@ namespace AKCondinoO.Sims{
         internal LinkedListNode<SimObject>pooled;       
         internal virtual void OnActivated(bool load){
         }
+        internal void OnUnplaceRequest(){
+         spawnerUnplaceRequest=true;
+        }
         internal void OnPoolRequest(){
-         poolRequested=true;
+         spawnerPoolRequest=true;
         }
         internal void OnExitSave(List<(Type simType,ulong number)>unplacedIds){
         }
         internal(Type simType,ulong number)?id=null;
-        bool poolRequested;
+        bool spawnerUnplaceRequest;
+        bool spawnerPoolRequest;
         internal virtual void ManualUpdate(){
          //Logger.Debug("ManualUpdate():"+id);
-         if(poolRequested){
-            poolRequested=false;
-             SimObjectSpawner.Singleton.DespawnQueue.Enqueue(this);
+         if(spawnerUnplaceRequest){
+            spawnerUnplaceRequest=false;
+             spawnerPoolRequest=false;
+             SimObjectSpawner.Singleton.DespawnReleaseIdQueue.Enqueue(this);
+         }else{
+          if(spawnerPoolRequest){
+             spawnerPoolRequest=false;
+              SimObjectSpawner.Singleton.DespawnQueue.Enqueue(this);
+          }
          }
         }
         internal struct PersistentData{

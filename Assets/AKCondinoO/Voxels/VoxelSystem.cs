@@ -320,6 +320,10 @@ namespace AKCondinoO.Voxels{
           marchingCubesBGThreads[i].editsFileStream      .Dispose();
           marchingCubesBGThreads[i].editsFileStreamReader.Dispose();
          }
+         terrainEditingBG.IsCompleted(terrainEditingBGThread.IsRunning,-1);
+         if(TerrainEditingMultithreaded.Clear()!=0){
+          Logger.Error("TerrainEditing task will stop with pending work");
+         }
          TerrainEditingMultithreaded.Stop=true;terrainEditingBGThread.Wait();
          terrainEditingBGThread.editsFileStreamWriter.Dispose();
          terrainEditingBGThread.editsFileStreamReader.Dispose();
@@ -364,6 +368,10 @@ namespace AKCondinoO.Voxels{
            cnk.expropriated=terrainPool.AddLast(cnk);
           }
          }
+         foreach(var kvp in terrainActive){VoxelTerrain cnk=kvp.Value;
+          cnk.ManualUpdate();
+         }
+         proceduralGenerationCoroutineBeginFlag=generationStarters.Count>0;
          if(DEBUG_EDIT){
             DEBUG_EDIT=false;
           //Logger.Debug("DEBUG_EDIT_AT:"+DEBUG_EDIT_AT);
@@ -383,10 +391,6 @@ namespace AKCondinoO.Voxels{
            OnTerrainEditingRequestsPushed();
           }
          }
-         foreach(var kvp in terrainActive){VoxelTerrain cnk=kvp.Value;
-          cnk.ManualUpdate();
-         }
-         proceduralGenerationCoroutineBeginFlag=generationStarters.Count>0;
         }
         bool OnTerrainEditingRequestsPush(){
          if(terrainEditingBG.IsCompleted(terrainEditingBGThread.IsRunning)){

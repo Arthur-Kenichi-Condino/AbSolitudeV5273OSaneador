@@ -40,26 +40,7 @@ namespace AKCondinoO.Sims{
         }
         void OnDestroyingCoreEvent(object sender,EventArgs e){
          persistentDataSavingBG.IsCompleted(persistentDataSavingBGThread.IsRunning,-1);
-         foreach(var kvp in persistentDataCache){var id=kvp.Key;var persistentData=kvp.Value;
-          persistentDataSavingBG.data[id.simType].AddOrUpdate(id.number,persistentData,
-           (key,oldValue)=>{
-            return persistentData;
-           }
-          );
-         }
-           persistentDataCache.Clear();
-         persistentDataTimeToLive.Clear();
-         foreach(var typeIdCount in ids){Type t=typeIdCount.Key;ulong idCount=typeIdCount.Value;
-          persistentDataSavingBG.ids[t]=idCount;
-         }
-         foreach(var kvp in releasedIds){
-          if(persistentDataSavingBG.releasedIds.TryGetValue(kvp.Key,out List<ulong>list)){
-           list.Clear();
-           list.AddRange(kvp.Value);
-          }else{
-           persistentDataSavingBG.releasedIds.Add(kvp.Key,new List<ulong>(kvp.Value));
-          }
-         }
+         OnSavingPersistentData(exitSave:true);
          PersistentDataSavingMultithreaded.Schedule(persistentDataSavingBG);
          persistentDataSavingBG.IsCompleted(persistentDataSavingBGThread.IsRunning,-1);
          if(PersistentDataSavingMultithreaded.Clear()!=0){
@@ -77,12 +58,37 @@ namespace AKCondinoO.Sims{
          persistentDataSavingBGThread.releasedIdsFileStreamReader.Dispose();
          if(Singleton==this){Singleton=null;}
         }
+        void OnSavingPersistentData(bool exitSave){
+         if(exitSave){
+          foreach(var kvp in persistentDataCache){var id=kvp.Key;var persistentData=kvp.Value;
+           persistentDataSavingBG.data[id.simType].AddOrUpdate(id.number,persistentData,
+            (key,oldValue)=>{
+             return persistentData;
+            }
+           );
+          }
+            persistentDataCache.Clear();
+          persistentDataTimeToLive.Clear();
+         }
+         foreach(var typeIdCount in ids){Type t=typeIdCount.Key;ulong idCount=typeIdCount.Value;
+          persistentDataSavingBG.ids[t]=idCount;
+         }
+         foreach(var kvp in releasedIds){
+          if(persistentDataSavingBG.releasedIds.TryGetValue(kvp.Key,out List<ulong>list)){
+           list.Clear();
+           list.AddRange(kvp.Value);
+          }else{
+           persistentDataSavingBG.releasedIds.Add(kvp.Key,new List<ulong>(kvp.Value));
+          }
+         }
+        }
         [SerializeField]int       DEBUG_CREATE_SIM_OBJECT_AMOUNT;
         [SerializeField]Vector3   DEBUG_CREATE_SIM_OBJECT_ROTATION;
         [SerializeField]Vector3   DEBUG_CREATE_SIM_OBJECT_POSITION;
         [SerializeField]Vector3   DEBUG_CREATE_SIM_OBJECT_SCALE=Vector3.one;
         [SerializeField]SimObject DEBUG_CREATE_SIM_OBJECT=null;
         [SerializeField]bool      DEBUG_POOL_ALL_SIM_OBJECTS=false;
+        [SerializeField]bool      DEBUG_UNPLACE_ALL_SIM_OBJECTS=false;
         [SerializeField]bool      DEBUG_SAVE_PENDING_PERSISTENT_DATA=false;
         internal readonly Dictionary<(Type simType,ulong number),SimObject.PersistentData>persistentDataCache=new Dictionary<(Type,ulong),SimObject.PersistentData>();
          readonly Dictionary<(Type simType,ulong number),float>persistentDataTimeToLive=new Dictionary<(Type,ulong),float>();
@@ -106,11 +112,27 @@ namespace AKCondinoO.Sims{
            SpawnQueue.Enqueue(spawnData);
           }
          }
-         if(DEBUG_POOL_ALL_SIM_OBJECTS){
-            DEBUG_POOL_ALL_SIM_OBJECTS=false;
-          foreach(var a in active){var sO=a.Value;
-           sO.OnPoolRequest();
+         if(DEBUG_UNPLACE_ALL_SIM_OBJECTS){
+            DEBUG_UNPLACE_ALL_SIM_OBJECTS=false;
+             foreach(var a in active){var sO=a.Value;
+              sO.OnUnplaceRequest();
+             }
+         }else{
+          if(DEBUG_POOL_ALL_SIM_OBJECTS){
+             DEBUG_POOL_ALL_SIM_OBJECTS=false;
+           foreach(var a in active){var sO=a.Value;
+            sO.OnPoolRequest();
+           }
           }
+         }
+         foreach(var a in active){var sO=a.Value;
+          sO.ManualUpdate();
+         }
+         while(DespawnQueue.Count>0){var toDespawn=DespawnQueue.Dequeue();
+          OnDeactivate(toDespawn);
+         }
+         while(DespawnReleaseIdQueue.Count>0){var toDespawnReleaseId=DespawnReleaseIdQueue.Dequeue();
+          OnDeactivateReleaseId(toDespawnReleaseId);
          }
          persistentDataTimeToLiveIds.Clear();
          persistentDataTimeToLiveIds.AddRange(persistentDataTimeToLive.Keys);
@@ -135,26 +157,10 @@ namespace AKCondinoO.Sims{
                 OnPendingPersistentDataPushedToFile();
              }
          }
-         foreach(var a in active){var sO=a.Value;
-          sO.ManualUpdate();
-         }
-         while(DespawnQueue.Count>0){var toDespawn=DespawnQueue.Dequeue();
-          OnDeactivate(toDespawn);
-         }
         }
         bool OnPendingPersistentDataPushToFile(){
          if(persistentDataSavingBG.IsCompleted(persistentDataSavingBGThread.IsRunning)){
-          foreach(var typeIdCount in ids){Type t=typeIdCount.Key;ulong idCount=typeIdCount.Value;
-           persistentDataSavingBG.ids[t]=idCount;
-          }
-          foreach(var kvp in releasedIds){
-           if(persistentDataSavingBG.releasedIds.TryGetValue(kvp.Key,out List<ulong>list)){
-            list.Clear();
-            list.AddRange(kvp.Value);
-           }else{
-            persistentDataSavingBG.releasedIds.Add(kvp.Key,new List<ulong>(kvp.Value));
-           }
-          }
+          OnSavingPersistentData(exitSave:false);
           PersistentDataSavingMultithreaded.Schedule(persistentDataSavingBG);
           return true;
          }
@@ -247,6 +253,17 @@ namespace AKCondinoO.Sims{
         internal readonly Queue<SimObject>DespawnQueue=new Queue<SimObject>();
         void OnDeactivate(SimObject sO){
          active.Remove(sO.id.Value);
+         persistentDataTimeToLive[sO.id.Value]=persistentDataCacheTimeToLive;
+         sO.pooled=pool[sO.id.Value.simType].AddLast(sO);
+         sO.id=null;
+        }
+        internal readonly Queue<SimObject>DespawnReleaseIdQueue=new Queue<SimObject>();
+        void OnDeactivateReleaseId(SimObject sO){
+         active.Remove(sO.id.Value);
+         if(!releasedIds.ContainsKey(sO.id.Value.simType)){
+          releasedIds.Add(sO.id.Value.simType,new List<ulong>());
+         }
+         releasedIds[sO.id.Value.simType].Add(sO.id.Value.number);
          persistentDataTimeToLive[sO.id.Value]=persistentDataCacheTimeToLive;
          sO.pooled=pool[sO.id.Value.simType].AddLast(sO);
          sO.id=null;

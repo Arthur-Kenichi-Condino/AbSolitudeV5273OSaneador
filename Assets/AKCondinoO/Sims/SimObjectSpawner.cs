@@ -73,6 +73,8 @@ namespace AKCondinoO.Sims{
          }
          persistentDataSavingBGThread.idsFileStreamWriter.Dispose();
          persistentDataSavingBGThread.idsFileStreamReader.Dispose();
+         persistentDataSavingBGThread.releasedIdsFileStreamWriter.Dispose();
+         persistentDataSavingBGThread.releasedIdsFileStreamReader.Dispose();
          if(Singleton==this){Singleton=null;}
         }
         [SerializeField]int       DEBUG_CREATE_SIM_OBJECT_AMOUNT;
@@ -295,6 +297,9 @@ namespace AKCondinoO.Sims{
           idsFileStream=new FileStream(SimObjectSpawner.idsFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
            idsFileStreamWriter=new StreamWriter(idsFileStream);
            idsFileStreamReader=new StreamReader(idsFileStream);
+          releasedIdsFileStream=new FileStream(SimObjectSpawner.releasedIdsFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
+           releasedIdsFileStreamWriter=new StreamWriter(releasedIdsFileStream);
+           releasedIdsFileStreamReader=new StreamReader(releasedIdsFileStream);
          }
          protected override void Cleanup(){
           //  pool lists

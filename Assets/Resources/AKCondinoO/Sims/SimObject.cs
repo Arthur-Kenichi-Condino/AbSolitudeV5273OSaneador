@@ -27,6 +27,9 @@ namespace AKCondinoO.Sims{
          public Quaternion rotation;
          public Vector3    position;
          public Vector3    localScale;
+         public override string ToString(){
+          return string.Format("persistentData={{ position={0}, }}",position);
+         }
         }
     }
 }

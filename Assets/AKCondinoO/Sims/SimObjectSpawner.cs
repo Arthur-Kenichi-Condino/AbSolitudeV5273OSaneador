@@ -1,3 +1,6 @@
+#if UNITY_EDITOR
+    #define ENABLE_DEBUG_LOG
+#endif
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -10,12 +13,13 @@ using static AKCondinoO.Sims.SimObject;
 using static AKCondinoO.Voxels.VoxelSystem;
 namespace AKCondinoO.Sims{
     internal class SimObjectSpawner:MonoBehaviour{internal static SimObjectSpawner Singleton;
-        internal readonly ConcurrentDictionary<(Type simType,ulong number),SimObject.PersistentData>persistentDataCache=new ConcurrentDictionary<(Type,ulong),SimObject.PersistentData>();
-         readonly Dictionary<(Type simType,ulong number),float>persistentDataTimeToLive=new Dictionary<(Type,ulong),float>();
-          readonly List<(Type simType,ulong number)>persistentDataTimeToLiveIds=new List<(Type,ulong)>();
         internal readonly Dictionary<Type,GameObject>SimObjectPrefabs=new Dictionary<Type,GameObject>();
+        internal static string idsFile;
+        internal static string releasedIdsFile;
         void Awake(){if(Singleton==null){Singleton=this;}else{DestroyImmediate(this);return;}
          Core.Singleton.OnDestroyingCoreEvent+=OnDestroyingCoreEvent;
+                 idsFile=string.Format("{0}{1}",Core.savePath,        "ids.txt");
+         releasedIdsFile=string.Format("{0}{1}",Core.savePath,"releasedIds.txt");
          simObjectSpawnSynchronization.Clear();
          PersistentDataSavingMultithreaded.Stop=false;persistentDataSavingBGThread=new PersistentDataSavingMultithreaded();
          foreach(var o in Resources.LoadAll("AKCondinoO/",typeof(GameObject))){var gO=(GameObject)o;var sO=gO.GetComponent<SimObject>();if(sO==null)continue;
@@ -24,7 +28,7 @@ namespace AKCondinoO.Sims{
           pool.Add(t,new LinkedList<SimObject>());
           Logger.Debug("added Prefab:"+sO.name);
           string saveFile=string.Format("{0}{1}{2}",Core.savePath,t,".txt");
-          Logger.Debug("saveFile:"+saveFile);
+          //Logger.Debug("saveFile:"+saveFile);
           persistentDataSavingBG.data[t]=new ConcurrentDictionary<ulong,PersistentData>();
           FileStream fileStream;
           persistentDataSavingBGThread.fileStream[t]=fileStream=new FileStream(saveFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
@@ -35,6 +39,29 @@ namespace AKCondinoO.Sims{
          StartCoroutine(SpawnCoroutine());
         }
         void OnDestroyingCoreEvent(object sender,EventArgs e){
+         persistentDataSavingBG.IsCompleted(persistentDataSavingBGThread.IsRunning,-1);
+         foreach(var kvp in persistentDataCache){var id=kvp.Key;var persistentData=kvp.Value;
+          persistentDataSavingBG.data[id.simType].AddOrUpdate(id.number,persistentData,
+           (key,oldValue)=>{
+            return persistentData;
+           }
+          );
+         }
+           persistentDataCache.Clear();
+         persistentDataTimeToLive.Clear();
+         foreach(var typeIdCount in ids){Type t=typeIdCount.Key;ulong idCount=typeIdCount.Value;
+          persistentDataSavingBG.ids[t]=idCount;
+         }
+         foreach(var kvp in releasedIds){
+          if(persistentDataSavingBG.releasedIds.TryGetValue(kvp.Key,out List<ulong>list)){
+           list.Clear();
+           list.AddRange(kvp.Value);
+          }else{
+           persistentDataSavingBG.releasedIds.Add(kvp.Key,new List<ulong>(kvp.Value));
+          }
+         }
+         PersistentDataSavingMultithreaded.Schedule(persistentDataSavingBG);
+         persistentDataSavingBG.IsCompleted(persistentDataSavingBGThread.IsRunning,-1);
          if(PersistentDataSavingMultithreaded.Clear()!=0){
           Logger.Error("PersistentDataSaving task will stop with pending work");
          }
@@ -44,6 +71,8 @@ namespace AKCondinoO.Sims{
           persistentDataSavingBGThread.fileStreamWriter[t].Dispose();
           persistentDataSavingBGThread.fileStreamReader[t].Dispose();
          }
+         persistentDataSavingBGThread.idsFileStreamWriter.Dispose();
+         persistentDataSavingBGThread.idsFileStreamReader.Dispose();
          if(Singleton==this){Singleton=null;}
         }
         [SerializeField]int       DEBUG_CREATE_SIM_OBJECT_AMOUNT;
@@ -53,6 +82,9 @@ namespace AKCondinoO.Sims{
         [SerializeField]SimObject DEBUG_CREATE_SIM_OBJECT=null;
         [SerializeField]bool      DEBUG_POOL_ALL_SIM_OBJECTS=false;
         [SerializeField]bool      DEBUG_SAVE_PENDING_PERSISTENT_DATA=false;
+        internal readonly Dictionary<(Type simType,ulong number),SimObject.PersistentData>persistentDataCache=new Dictionary<(Type,ulong),SimObject.PersistentData>();
+         readonly Dictionary<(Type simType,ulong number),float>persistentDataTimeToLive=new Dictionary<(Type,ulong),float>();
+          readonly List<(Type simType,ulong number)>persistentDataTimeToLiveIds=new List<(Type,ulong)>();
         internal readonly Dictionary<Type,ulong>ids=new Dictionary<Type,ulong>();
         internal readonly Dictionary<Type,List<ulong>>releasedIds=new Dictionary<Type,List<ulong>>();
         internal readonly Dictionary<Type,LinkedList<SimObject>>pool=new Dictionary<Type,LinkedList<SimObject>>();
@@ -83,7 +115,13 @@ namespace AKCondinoO.Sims{
          for(int i=0;i<persistentDataTimeToLiveIds.Count;++i){
           var id=persistentDataTimeToLiveIds[i];
           if((persistentDataTimeToLive[id]-=Time.deltaTime)<0f){
-           persistentDataCache.TryRemove(id,out SimObject.PersistentData persistentData);
+           SimObject.PersistentData persistentData=persistentDataCache[id];
+           persistentDataSavingBG.data[id.simType].AddOrUpdate(id.number,persistentData,
+            (key,oldValue)=>{
+             return persistentData;
+            }
+           );
+             persistentDataCache.Remove(id);
            persistentDataTimeToLive.Remove(id);
           }
          }
@@ -104,6 +142,17 @@ namespace AKCondinoO.Sims{
         }
         bool OnPendingPersistentDataPushToFile(){
          if(persistentDataSavingBG.IsCompleted(persistentDataSavingBGThread.IsRunning)){
+          foreach(var typeIdCount in ids){Type t=typeIdCount.Key;ulong idCount=typeIdCount.Value;
+           persistentDataSavingBG.ids[t]=idCount;
+          }
+          foreach(var kvp in releasedIds){
+           if(persistentDataSavingBG.releasedIds.TryGetValue(kvp.Key,out List<ulong>list)){
+            list.Clear();
+            list.AddRange(kvp.Value);
+           }else{
+            persistentDataSavingBG.releasedIds.Add(kvp.Key,new List<ulong>(kvp.Value));
+           }
+          }
           PersistentDataSavingMultithreaded.Schedule(persistentDataSavingBG);
           return true;
          }
@@ -147,10 +196,20 @@ namespace AKCondinoO.Sims{
              if(!ids.ContainsKey(simType)){
               ids.Add(simType,1);
              }else{
-              number=ids[simType]++;
+              if(releasedIds.ContainsKey(simType)&&releasedIds[simType].Count>0){
+               List<ulong>simTypeReleasedIds=releasedIds[simType];
+               number=simTypeReleasedIds[simTypeReleasedIds.Count-1];
+               simTypeReleasedIds.RemoveAt(simTypeReleasedIds.Count-1);
+              }else{
+               number=ids[simType]++;
+              }
              }
             }else{
              number=at.id.Value;
+             if(releasedIds.ContainsKey(simType)&&releasedIds[simType].Contains(number)){
+              Logger.Debug("SpawnCoroutine:id number is unplaced:"+number);
+              continue;
+             }
             }
             (Type simType,ulong number)id=(simType,number);
             if(active.ContainsKey(id)){
@@ -170,7 +229,9 @@ namespace AKCondinoO.Sims{
              simObjectSpawnSynchronization.Add(sO,sO.synchronizer);
             }
             persistentDataTimeToLive.Remove(id);
-            persistentDataCache.TryAdd(id,new SimObject.PersistentData());
+            if(!persistentDataCache.ContainsKey(id)){
+             persistentDataCache.Add(id,new SimObject.PersistentData());
+            }//  TO DO: use loaded data
             active.Add(id,sO);
             sO.id=id;
            }
@@ -194,10 +255,12 @@ namespace AKCondinoO.Sims{
         }
         internal class PersistentDataLoadingMultithreaded:BaseMultithreaded<PersistentDataLoadingBackgroundContainer>{
          internal readonly Dictionary<Type,FileStream>fileStream=new Dictionary<Type,FileStream>();
-          internal readonly Dictionary<Type,StreamWriter>fileStreamWriter=new Dictionary<Type,StreamWriter>();
           internal readonly Dictionary<Type,StreamReader>fileStreamReader=new Dictionary<Type,StreamReader>();            
          protected override void Execute(){
           lock(simObjectSpawnSynchronization){
+           foreach(var typeFileStreamPair in this.fileStream){Type t=typeFileStreamPair.Key;
+            FileStream fileStream=typeFileStreamPair.Value;
+           }
           }   
          }
         }
@@ -205,10 +268,20 @@ namespace AKCondinoO.Sims{
         #region saving
         internal readonly PersistentDataSavingBackgroundContainer persistentDataSavingBG=new PersistentDataSavingBackgroundContainer();
         internal class PersistentDataSavingBackgroundContainer:BackgroundContainer{
+         internal readonly Dictionary<Type,ulong>ids=new Dictionary<Type,ulong>();
+         internal readonly Dictionary<Type,List<ulong>>releasedIds=new Dictionary<Type,List<ulong>>();
          internal readonly Dictionary<Type,ConcurrentDictionary<ulong,SimObject.PersistentData>>data=new Dictionary<Type,ConcurrentDictionary<ulong,SimObject.PersistentData>>();
         }
         internal PersistentDataSavingMultithreaded persistentDataSavingBGThread;
         internal class PersistentDataSavingMultithreaded:BaseMultithreaded<PersistentDataSavingBackgroundContainer>{
+         internal readonly FileStream idsFileStream;
+          internal readonly StreamWriter idsFileStreamWriter;
+          internal readonly StreamReader idsFileStreamReader;
+           internal readonly StringBuilder idsStringBuilder=new StringBuilder();
+         internal readonly FileStream releasedIdsFileStream;
+          internal readonly StreamWriter releasedIdsFileStreamWriter;
+          internal readonly StreamReader releasedIdsFileStreamReader;
+           internal readonly StringBuilder releasedIdsStringBuilder=new StringBuilder();
          internal readonly Dictionary<Type,FileStream>fileStream=new Dictionary<Type,FileStream>();
           internal readonly Dictionary<Type,StreamWriter>fileStreamWriter=new Dictionary<Type,StreamWriter>();
           internal readonly Dictionary<Type,StreamReader>fileStreamReader=new Dictionary<Type,StreamReader>();
@@ -218,6 +291,11 @@ namespace AKCondinoO.Sims{
           internal static readonly ConcurrentQueue<List<(ulong id,SimObject.PersistentData persistentData)>>idPersistentDataListPool=new ConcurrentQueue<List<(ulong,SimObject.PersistentData)>>();
          readonly Dictionary<Type,List<ulong>>idListByType=new Dictionary<Type,List<ulong>>();
          readonly List<int>processedcnkIdx=new List<int>();
+         internal PersistentDataSavingMultithreaded(){
+          idsFileStream=new FileStream(SimObjectSpawner.idsFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
+           idsFileStreamWriter=new StreamWriter(idsFileStream);
+           idsFileStreamReader=new StreamReader(idsFileStream);
+         }
          protected override void Cleanup(){
           //  pool lists
           foreach(var kvp1 in idPersistentDataListBycnkIdxByType){var idPersistentDataListBycnkIdx=kvp1.Value;
@@ -232,20 +310,28 @@ namespace AKCondinoO.Sims{
           }
          }
          protected override void Execute(){
-
-
-                // TO DO: lock syn, save ids and released ids, make loader thread for each sim object and loader to get ids and released ids and which sim objects to load
-                //container.data[typeof(SimObject)].TryAdd(0,new PersistentData());//AddOrUpdate
-                //container.data[typeof(SimObject)].TryAdd(1,new PersistentData());
-                //container.data[typeof(SimObject)].TryAdd(2,new PersistentData());//AddOrUpdate
-                //container.data[typeof(SimObject)].TryAdd(3,new PersistentData());
-
-
+// TO DO: save released ids, make loader thread to get ids and released ids and sim objects
           lock(simObjectSpawnSynchronization){    
+           idsStringBuilder.Clear();
+           foreach(var typeIdCount in container.ids){Type t=typeIdCount.Key;ulong idCount=typeIdCount.Value;
+            idsStringBuilder.AppendFormat("{{ type={0}, idCount={1} }}, {2}",t,idCount,Environment.NewLine);
+           }
+           idsFileStream.SetLength(0L);
+           idsFileStreamWriter.Write(idsStringBuilder.ToString());
+           idsFileStreamWriter.Flush();
+           releasedIdsStringBuilder.Clear();
+           foreach(var typeReleasedIdsPair in container.releasedIds){Type t=typeReleasedIdsPair.Key;var list=typeReleasedIdsPair.Value;
+            releasedIdsStringBuilder.AppendFormat("{{ type={0}, {{ ",t);
+            for(int i=0;i<list.Count;++i){
+             releasedIdsStringBuilder.AppendFormat("{0}, ",list[i]);
+            }
+            releasedIdsStringBuilder.AppendFormat("}}, {0}",Environment.NewLine);
+           }
+           releasedIdsFileStream.SetLength(0L);
+           releasedIdsFileStreamWriter.Write(releasedIdsStringBuilder.ToString());
+           releasedIdsFileStreamWriter.Flush();
            foreach(var syn in simObjectSpawnSynchronization)Monitor.Enter(syn.Value);
            try{
-
-
             //Logger.Debug("before saving idPersistentDataListPool.Count:"+idPersistentDataListPool.Count);
             foreach(var typePersistentDataToSavePair in container.data){Type t=typePersistentDataToSavePair.Key;var persistentDataToSave=typePersistentDataToSavePair.Value;
              //Logger.Debug("before saving type:"+t+", pending PersistentData to save:"+persistentDataToSave.Count);
@@ -278,10 +364,7 @@ namespace AKCondinoO.Sims{
              FileStream fileStream=this.fileStream[t];
              StreamWriter fileStreamWriter=this.fileStreamWriter[t];
              StreamReader fileStreamReader=this.fileStreamReader[t];
-             stringBuilder.Clear();
-                    
-
-
+             stringBuilder.Clear();                    
              fileStream.Position=0L;
              fileStreamReader.DiscardBufferedData();
              string line;
@@ -290,68 +373,55 @@ namespace AKCondinoO.Sims{
               int totalCharactersRemoved=0;
               lineStringBuilder.Clear();
               lineStringBuilder.Append(line);
-
               int cnkIdxStringStart=line.IndexOf("cnkIdx=")+7;
               int cnkIdxStringEnd=line.IndexOf(" ,",cnkIdxStringStart);
               int cnkIdxStringLength=cnkIdxStringEnd-cnkIdxStringStart;
               int cnkIdx=int.Parse(line.Substring(cnkIdxStringStart,cnkIdxStringLength));
-              Logger.Debug("process file at cnkIdx:"+cnkIdx);
+              //Logger.Debug("process file at cnkIdx:"+cnkIdx);
               processedcnkIdx.Add(cnkIdx);
               int simObjectStringStart=cnkIdxStringEnd+2;
               int endOfLineStart=simObjectStringStart;
               while((simObjectStringStart=line.IndexOf("simObject=",simObjectStringStart))>=0){
                int simObjectStringEnd=line.IndexOf("}, ",simObjectStringStart)+3;
                string simObjectString=line.Substring(simObjectStringStart,simObjectStringEnd-simObjectStringStart);
-               Logger.Debug("simObjectString:"+simObjectString);
+               //Logger.Debug("simObjectString:"+simObjectString);
                int idStringStart=simObjectString.IndexOf("id=")+3;
                int idStringEnd=simObjectString.IndexOf(", ",idStringStart);
                ulong id=ulong.Parse(simObjectString.Substring(idStringStart,idStringEnd-idStringStart));
-               Logger.Debug("id:"+id);
-
+               //Logger.Debug("id:"+id);
                if(idListByType[t].Contains(id)){
-                //line=line.Remove(simObjectStringStart,simObjectStringEnd-simObjectStringStart);
                 int toRemoveLength=simObjectStringEnd-totalCharactersRemoved-(simObjectStringStart-totalCharactersRemoved);
                 lineStringBuilder.Remove(simObjectStringStart-totalCharactersRemoved,toRemoveLength);
                 totalCharactersRemoved+=toRemoveLength;
                }
-
                simObjectStringStart=simObjectStringEnd;
                endOfLineStart=simObjectStringStart;
               }
-
               endOfLineStart=line.IndexOf("} }, ",endOfLineStart);
               int endOfLineEnd=line.IndexOf(", ",endOfLineStart)+2;
               lineStringBuilder.Remove(endOfLineStart-totalCharactersRemoved,endOfLineEnd-totalCharactersRemoved-(endOfLineStart-totalCharactersRemoved));
-
               line=lineStringBuilder.ToString();
-
               stringBuilder.Append(line);
               if(idPersistentDataListBycnkIdx.ContainsKey(cnkIdx)){
                foreach(var idPersistentData in idPersistentDataListBycnkIdx[cnkIdx]){ulong id=idPersistentData.id;SimObject.PersistentData persistentData=idPersistentData.persistentData;
-                stringBuilder.AppendFormat("simObject={{ id={0}, persistentData={{ position={1}, }} }}, ",id,persistentData.position);
+                stringBuilder.AppendFormat("simObject={{ id={0}, {1} }}, ",id,persistentData.ToString());
                }
               }
               stringBuilder.AppendFormat("}} }}, {0}",Environment.NewLine);
-
              }
              foreach(var kvp2 in idPersistentDataListBycnkIdx){int cnkIdx=kvp2.Key;var idPersistentDataList=kvp2.Value;
               if(processedcnkIdx.Contains(cnkIdx)){continue;}
               stringBuilder.AppendFormat("{{ cnkIdx={0} , {{ ",cnkIdx);
               foreach(var idPersistentData in idPersistentDataList){ulong id=idPersistentData.id;SimObject.PersistentData persistentData=idPersistentData.persistentData;
-               stringBuilder.AppendFormat("simObject={{ id={0}, persistentData={{ position={1}, }} }}, ",id,persistentData.position);
+               stringBuilder.AppendFormat("simObject={{ id={0}, {1} }}, ",id,persistentData.ToString());
               }
               stringBuilder.AppendFormat("}} }}, {0}",Environment.NewLine);
              }
              fileStream.SetLength(0L);
              fileStreamWriter.Write(stringBuilder.ToString());
              fileStreamWriter.Flush();
-
-
-
             }
-            Logger.Debug("after saving idPersistentDataListPool.Count:"+idPersistentDataListPool.Count);
-
-
+            //Logger.Debug("after saving idPersistentDataListPool.Count:"+idPersistentDataListPool.Count);
            }catch{
             throw;
            }finally{

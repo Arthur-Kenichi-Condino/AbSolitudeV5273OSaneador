@@ -58,24 +58,30 @@ namespace AKCondinoO.Voxels{
         internal void OnEdited(){
          pendingEditChanges=true;
         }
+        bool addingSimObjects;
         bool waitingBakeJob;
         bool waitingMarchingCubes;
         bool pendingMovement;
         bool pendingEditChanges;
         internal void ManualUpdate(){
-            if(waitingBakeJob&&OnMeshBaked()){
-               waitingBakeJob=false;
+            if(addingSimObjects){
+
             }else{
-                if(waitingMarchingCubes&&OnMeshDataSet()){
-                   waitingMarchingCubes=false;
-                    OnBakingMesh();
+                if(waitingBakeJob&&OnMeshBaked()){
+                   waitingBakeJob=false;
+                    OnAddingSimObjects();
                 }else{
-                    if(pendingMovement&&OnApplyingMovement()){
-                       pendingMovement=false;
-                        OnMovementApplied();
-                    }else if(pendingEditChanges&&OnPushingEditChanges()){
-                             pendingEditChanges=false;
-                        OnEditChangesPushed();
+                    if(waitingMarchingCubes&&OnMeshDataSet()){
+                       waitingMarchingCubes=false;
+                        OnBakingMesh();
+                    }else{
+                        if(pendingMovement&&OnApplyingMovement()){
+                           pendingMovement=false;
+                            OnMovementApplied();
+                        }else if(pendingEditChanges&&OnPushingEditChanges()){
+                                 pendingEditChanges=false;
+                            OnEditChangesPushed();
+                        }
                     }
                 }
             }
@@ -150,6 +156,8 @@ namespace AKCondinoO.Voxels{
           return true;
          }
          return false;
+        }
+        void OnAddingSimObjects(){
         }
         internal MarchingCubesBackgroundContainer marchingCubesBG;
         internal class MarchingCubesBackgroundContainer:BackgroundContainer{

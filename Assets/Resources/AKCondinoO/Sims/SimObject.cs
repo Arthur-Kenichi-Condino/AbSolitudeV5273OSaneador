@@ -1,9 +1,32 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using UnityEngine;
 namespace AKCondinoO.Sims{
     internal class SimObject:MonoBehaviour{
         internal readonly object synchronizer=new object();
+        internal PersistentData persistentData;
+        internal struct PersistentData{
+         public Quaternion rotation;
+         public Vector3    position;
+         public Vector3    localScale;
+         public void UpdateData(SimObject sO){
+          rotation=sO.transform.rotation;
+          position=sO.transform.position;
+          localScale=sO.transform.localScale;
+          if(SimObjectSpawner.Singleton!=null){
+           SimObjectSpawner.Singleton.persistentDataCache[sO.id.Value]=this;
+          }
+         }
+         static readonly CultureInfo ci=CultureInfo.GetCultureInfo("en");
+         public override string ToString(){
+          return string.Format(ci,"persistentData={{ position={0}, }}",position);
+         }
+         public static PersistentData Parse(string s){
+          PersistentData persistentData=new PersistentData();
+          return persistentData;
+         }
+        }
         protected virtual void Awake(){
         }
         internal LinkedListNode<SimObject>pooled;       
@@ -16,6 +39,14 @@ namespace AKCondinoO.Sims{
          spawnerPoolRequest=true;
         }
         internal void OnExitSave(List<(Type simType,ulong number)>unplacedIds){
+         if(this!=null){
+          persistentData.UpdateData(this);
+         }
+        }
+        void OnDestroy(){
+         if(id!=null){
+          persistentData.UpdateData(this);
+         }
         }
         internal(Type simType,ulong number)?id=null;
         bool spawnerUnplaceRequest;
@@ -31,14 +62,6 @@ namespace AKCondinoO.Sims{
              spawnerPoolRequest=false;
               SimObjectSpawner.Singleton.DespawnQueue.Enqueue(this);
           }
-         }
-        }
-        internal struct PersistentData{
-         public Quaternion rotation;
-         public Vector3    position;
-         public Vector3    localScale;
-         public override string ToString(){
-          return string.Format("persistentData={{ position={0}, }}",position);
          }
         }
     }

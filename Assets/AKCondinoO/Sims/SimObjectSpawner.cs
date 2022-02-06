@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using UnityEngine;
@@ -89,6 +90,10 @@ namespace AKCondinoO.Sims{
         }
         void OnDestroyingCoreEvent(object sender,EventArgs e){
          persistentDataSavingBG.IsCompleted(persistentDataSavingBGThread.IsRunning,-1);
+         List<(Type simType,ulong number)>unplacedIds=new List<(Type,ulong)>();
+         foreach(var a in active){var sO=a.Value;
+          sO.OnExitSave(unplacedIds);
+         }
          OnSavingPersistentData(exitSave:true);
          PersistentDataSavingMultithreaded.Schedule(persistentDataSavingBG);
          persistentDataSavingBG.IsCompleted(persistentDataSavingBGThread.IsRunning,-1);
@@ -160,6 +165,7 @@ namespace AKCondinoO.Sims{
          internal readonly Dictionary<(Type simType,ulong number),SimObject>active=new Dictionary<(Type,ulong),SimObject>();
         readonly SpawnData spawnData=new SpawnData();
         bool savingPersistentData;
+        bool loadingPersistentData;
         void Update(){
          if(DEBUG_CREATE_SIM_OBJECT!=null){
           if(spawnData.dequeued){
@@ -186,8 +192,14 @@ namespace AKCondinoO.Sims{
            }
           }
          }
-         if(DEBUG_LOAD_SIM_OBJECTS&&OnPersistentDataLoad()){
-            DEBUG_LOAD_SIM_OBJECTS=false;
+         if(loadingPersistentData&&OnPersistentDataLoaded()){
+            loadingPersistentData=false;
+             //Logger.Debug("spawn loaded data");
+         }else{
+             if(DEBUG_LOAD_SIM_OBJECTS&&OnPersistentDataLoad()){
+                DEBUG_LOAD_SIM_OBJECTS=false;
+                 OnPersistentDataLoading();
+             }
          }
          foreach(var a in active){var sO=a.Value;
           sO.ManualUpdate();
@@ -240,8 +252,21 @@ namespace AKCondinoO.Sims{
          return false;
         }
         bool OnPersistentDataLoad(){
-         if(persistentDataLoadingBG.IsCompleted(persistentDataLoadingBGThread.IsRunning)){
+         if(persistentDataLoadingBG.IsCompleted(persistentDataLoadingBGThread.IsRunning)&&persistentDataLoadingBG.output.dequeued){
+          if(DEBUG_LOAD_SIM_OBJECTS){
+           persistentDataLoadingBG.inputcnkIdx.Add(DEBUG_LOAD_SIM_OBJECTS_AT_CHUNK);
+          }
           PersistentDataLoadingMultithreaded.Schedule(persistentDataLoadingBG);
+          return true;
+         }
+         return false;
+        }
+        void OnPersistentDataLoading(){
+         loadingPersistentData=true;
+        }
+        bool OnPersistentDataLoaded(){
+         if(persistentDataLoadingBG.IsCompleted(persistentDataLoadingBGThread.IsRunning)){
+          SpawnQueue.Enqueue(persistentDataLoadingBG.output);
           return true;
          }
          return false;
@@ -249,6 +274,8 @@ namespace AKCondinoO.Sims{
         internal class SpawnData{
          internal bool dequeued=true;
          internal readonly List<(Vector3 position,Vector3 rotation,Vector3 scale,Type type,ulong?id)>at;
+         internal readonly HashSet<(Type simType,ulong number)>useSpecificIds=new HashSet<(Type,ulong)>();
+         internal readonly Dictionary<(Type simType,ulong number),SimObject.PersistentData>persistentData=new Dictionary<(Type,ulong),SimObject.PersistentData>();
          internal SpawnData(){
           at=new List<(Vector3,Vector3,Vector3,Type,ulong?)>(1);
          }
@@ -256,6 +283,8 @@ namespace AKCondinoO.Sims{
           at=new List<(Vector3,Vector3,Vector3,Type,ulong?)>(capacity);
          }
         }
+        internal readonly Type[]doNotUseReleasedIds=new Type[]{
+        };
         internal static readonly Queue<SpawnData>SpawnQueue=new Queue<SpawnData>();
         WaitUntil waitSpawnQueue;
         IEnumerator SpawnCoroutine(){
@@ -265,17 +294,18 @@ namespace AKCondinoO.Sims{
          Loop:{
           yield return waitSpawnQueue;
           while(SpawnQueue.Count>0){SpawnData toSpawn=SpawnQueue.Dequeue();
-           Logger.Debug("toSpawn.at.Count:"+toSpawn.at.Count);
+           //Logger.Debug("toSpawn.at.Count:"+toSpawn.at.Count);
            foreach(var at in toSpawn.at){
             while(savingPersistentData)yield return null;
             Type simType=at.type;
             ulong number;
+            (Type simType,ulong number)id;
             if(at.id==null){
              number=0;
              if(!ids.ContainsKey(simType)){
               ids.Add(simType,1);
              }else{
-              if(releasedIds.ContainsKey(simType)&&releasedIds[simType].Count>0){
+              if(!doNotUseReleasedIds.Contains(simType)&&releasedIds.ContainsKey(simType)&&releasedIds[simType].Count>0){
                List<ulong>simTypeReleasedIds=releasedIds[simType];
                number=simTypeReleasedIds[simTypeReleasedIds.Count-1];
                simTypeReleasedIds.RemoveAt(simTypeReleasedIds.Count-1);
@@ -283,16 +313,23 @@ namespace AKCondinoO.Sims{
                number=ids[simType]++;
               }
              }
+             id=(simType,number);
             }else{
              number=at.id.Value;
-             if(releasedIds.ContainsKey(simType)&&releasedIds[simType].Contains(number)){
-              Logger.Debug("SpawnCoroutine:id number is unplaced:"+number);
-              continue;
+             id=(simType,number);
+             if(toSpawn.useSpecificIds.Contains(id)){
+              if(releasedIds.ContainsKey(simType)){
+               releasedIds[simType].Remove(number);
+              }
+             }else{
+              if(releasedIds.ContainsKey(simType)&&releasedIds[simType].Contains(number)){
+               //Logger.Debug("SpawnCoroutine:id number is unplaced:"+number);
+               continue;
+              }
              }
             }
-            (Type simType,ulong number)id=(simType,number);
             if(active.ContainsKey(id)){
-             Logger.Debug("SpawnCoroutine:id already spawned:"+id);
+             //Logger.Debug("SpawnCoroutine:id already spawned:"+id);
              continue;
             }
             GameObject gO;SimObject sO;
@@ -308,13 +345,28 @@ namespace AKCondinoO.Sims{
              simObjectSpawnSynchronization.Add(sO,sO.synchronizer);
             }
             persistentDataTimeToLive.Remove(id);
-            if(!persistentDataCache.ContainsKey(id)){
-             persistentDataCache.Add(id,new SimObject.PersistentData());
-            }//  TO DO: use loaded data except transform data if it had the id released before
+            SimObject.PersistentData persistentData;
+            if(toSpawn.persistentData.TryGetValue(id,out persistentData)){
+             gO.transform.position=persistentData.position;
+             gO.transform.rotation=persistentData.rotation;
+             gO.transform.localScale=persistentData.localScale;
+            }else{
+             persistentData=new SimObject.PersistentData();
+             gO.transform.position=at.position;
+             gO.transform.rotation=Quaternion.Euler(at.rotation);
+             gO.transform.localScale=at.scale;
+             persistentData.position=gO.transform.position;
+             persistentData.rotation=gO.transform.rotation;
+             persistentData.localScale=gO.transform.localScale;
+            }
+            persistentDataCache[id]=persistentData;
+            sO.persistentData=persistentData;
             active.Add(id,sO);
             sO.id=id;
            }
            toSpawn.at.Clear();
+           toSpawn.useSpecificIds.Clear();
+           toSpawn.persistentData.Clear();
            toSpawn.dequeued=true;
           }
          }
@@ -343,19 +395,63 @@ namespace AKCondinoO.Sims{
         #region loading
         internal readonly PersistentDataLoadingBackgroundContainer persistentDataLoadingBG=new PersistentDataLoadingBackgroundContainer();
         internal class PersistentDataLoadingBackgroundContainer:BackgroundContainer{
+         internal readonly Dictionary<(Type simType,ulong number),(Vector3 position,Vector3 rotation,Vector3 scale)>specificIdsToLoad=new Dictionary<(Type,ulong),(Vector3,Vector3,Vector3)>();
+         internal readonly HashSet<int>inputcnkIdx=new HashSet<int>();
+         internal readonly SpawnData output=new SpawnData();
         }
         internal PersistentDataLoadingMultithreaded persistentDataLoadingBGThread;
         internal class PersistentDataLoadingMultithreaded:BaseMultithreaded<PersistentDataLoadingBackgroundContainer>{
          internal readonly Dictionary<Type,FileStream>fileStream=new Dictionary<Type,FileStream>();
           internal readonly Dictionary<Type,StreamReader>fileStreamReader=new Dictionary<Type,StreamReader>();            
          protected override void Execute(){
-// TO DO: get sim objects' persistent data
+          container.output.dequeued=false;
           lock(simObjectSpawnSynchronization){
            foreach(var typeFileStreamPair in this.fileStream){Type t=typeFileStreamPair.Key;
             FileStream fileStream=typeFileStreamPair.Value;
-            Logger.Debug("loading data for type:"+t);
+            StreamReader fileStreamReader=this.fileStreamReader[t];
+            //Logger.Debug("loading data for type:"+t);
+            fileStream.Position=0L;
+            fileStreamReader.DiscardBufferedData();
+            string line;
+            while((line=fileStreamReader.ReadLine())!=null){
+             if(string.IsNullOrEmpty(line)){continue;}
+             int cnkIdxStringStart=line.IndexOf("cnkIdx=")+7;
+             int cnkIdxStringEnd=line.IndexOf(" ,",cnkIdxStringStart);
+             int cnkIdxStringLength=cnkIdxStringEnd-cnkIdxStringStart;
+             int cnkIdx=int.Parse(line.Substring(cnkIdxStringStart,cnkIdxStringLength));
+             bool loadAll=container.inputcnkIdx.Contains(cnkIdx);
+             if(loadAll||container.specificIdsToLoad.Count>0){
+              int simObjectStringStart=cnkIdxStringEnd+2;
+              while((simObjectStringStart=line.IndexOf("simObject=",simObjectStringStart))>=0){
+               int simObjectStringEnd=line.IndexOf("}, ",simObjectStringStart)+3;
+               string simObjectString=line.Substring(simObjectStringStart,simObjectStringEnd-simObjectStringStart);
+               int idStringStart=simObjectString.IndexOf("id=")+3;
+               int idStringEnd=simObjectString.IndexOf(", ",idStringStart);
+               ulong id=ulong.Parse(simObjectString.Substring(idStringStart,idStringEnd-idStringStart));
+               (Type simType,ulong number)outputId=(t,id);
+               int persistentDataStringStart=simObjectString.IndexOf("persistentData=",idStringEnd+2);
+               int persistentDataStringEnd=simObjectString.IndexOf(" }",persistentDataStringStart)+2;
+               string persistentDataString=simObjectString.Substring(persistentDataStringStart,persistentDataStringEnd-persistentDataStringStart);
+               SimObject.PersistentData persistentData=SimObject.PersistentData.Parse(persistentDataString);
+               if(container.specificIdsToLoad.TryGetValue(outputId,out(Vector3 position,Vector3 rotation,Vector3 scale)outputTransform)){
+                persistentData.position=outputTransform.position;
+                persistentData.rotation=Quaternion.Euler(outputTransform.rotation);
+                persistentData.localScale=outputTransform.scale;
+                container.output.useSpecificIds.Add(outputId);
+                container.output.persistentData.Add(outputId,persistentData);
+                container.output.at.Add((outputTransform.position,outputTransform.rotation,outputTransform.scale,outputId.simType,outputId.number));
+               }else{
+                container.output.persistentData.Add(outputId,persistentData);
+                container.output.at.Add((persistentData.position,persistentData.rotation.eulerAngles,persistentData.localScale,outputId.simType,outputId.number));
+               }
+               simObjectStringStart=simObjectStringEnd;
+              }
+             }
+            }
            }
-          }   
+          }
+           container.specificIdsToLoad.Clear();
+          container.inputcnkIdx.Clear();   
          }
         }
         #endregion

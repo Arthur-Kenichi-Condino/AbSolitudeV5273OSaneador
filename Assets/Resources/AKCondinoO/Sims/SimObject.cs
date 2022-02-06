@@ -25,7 +25,16 @@ namespace AKCondinoO.Sims{
          public static PersistentData Parse(string s){
           PersistentData persistentData=new PersistentData();
           int positionStringStart=s.IndexOf("position=(");
-          int positionStringEnd=s.IndexOf("), ",positionStringStart);
+          if(positionStringStart>=0){
+           positionStringStart+=10;
+           int positionStringEnd=s.IndexOf("), ",positionStringStart);
+           string positionString=s.Substring(positionStringStart,positionStringEnd-positionStringStart);
+           string[]xyzString=positionString.Split(',');
+           float x=float.Parse(xyzString[0].Replace(" ","").Replace(".",","));
+           float y=float.Parse(xyzString[1].Replace(" ","").Replace(".",","));
+           float z=float.Parse(xyzString[2].Replace(" ","").Replace(".",","));
+           persistentData.position=new Vector3(x,y,z);
+          }
           return persistentData;
          }
         }

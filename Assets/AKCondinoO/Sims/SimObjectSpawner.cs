@@ -316,6 +316,10 @@ namespace AKCondinoO.Sims{
              id=(simType,number);
             }else{
              number=at.id.Value;
+             if(!ids.ContainsKey(simType)||number>=ids[simType]){
+              Logger.Debug("SpawnCoroutine:loading id number that doesn't exist yet:"+number);
+              continue;
+             }
              id=(simType,number);
              if(toSpawn.useSpecificIds.Contains(id)){
               if(releasedIds.ContainsKey(simType)){

@@ -65,7 +65,7 @@ namespace AKCondinoO.Voxels{
         bool pendingEditChanges;
         internal void ManualUpdate(){
             if(addingSimObjects){
-
+                AddingSimObjectsSubroutine();
             }else{
                 if(waitingBakeJob&&OnMeshBaked()){
                    waitingBakeJob=false;
@@ -85,6 +85,11 @@ namespace AKCondinoO.Voxels{
                     }
                 }
             }
+        }
+        internal NativeList<RaycastCommand>GetGroundRays;
+        internal NativeList<RaycastHit    >GetGroundHits;
+        internal void AddingSimObjectsSubroutine(){
+         addingSimObjects=false;
         }
         bool OnApplyingMovement(){
          if(marchingCubesBG.IsCompleted(VoxelSystem.Singleton.marchingCubesBGThreads[0].IsRunning)){
@@ -158,6 +163,7 @@ namespace AKCondinoO.Voxels{
          return false;
         }
         void OnAddingSimObjects(){
+         addingSimObjects=true;
         }
         internal MarchingCubesBackgroundContainer marchingCubesBG;
         internal class MarchingCubesBackgroundContainer:BackgroundContainer{

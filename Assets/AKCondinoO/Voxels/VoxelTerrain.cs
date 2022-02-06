@@ -39,11 +39,15 @@ namespace AKCondinoO.Voxels{
          marchingCubesBG=new MarchingCubesBackgroundContainer(synchronizer);
          marchingCubesBG.TempVer=new NativeList<Vertex>(Allocator.Persistent);
          marchingCubesBG.TempTri=new NativeList<UInt32>(Allocator.Persistent);
+         simObjectsBG.GetGroundRays=new NativeList<RaycastCommand>(Width*Depth,Allocator.Persistent);
+         simObjectsBG.GetGroundHits=new NativeList<RaycastHit    >(Width*Depth,Allocator.Persistent);
         }
         internal void OnExit(){
          marchingCubesBG.IsCompleted(VoxelSystem.Singleton.marchingCubesBGThreads[0].IsRunning,-1);
          if(marchingCubesBG.TempVer.IsCreated)marchingCubesBG.TempVer.Dispose();
          if(marchingCubesBG.TempTri.IsCreated)marchingCubesBG.TempTri.Dispose();
+         if(simObjectsBG.GetGroundRays.IsCreated)simObjectsBG.GetGroundRays.Dispose();
+         if(simObjectsBG.GetGroundHits.IsCreated)simObjectsBG.GetGroundHits.Dispose();
         }
         Vector2Int cCoord;
         Vector2Int cnkRgn;
@@ -86,8 +90,6 @@ namespace AKCondinoO.Voxels{
                 }
             }
         }
-        internal NativeList<RaycastCommand>GetGroundRays;
-        internal NativeList<RaycastHit    >GetGroundHits;
         internal void AddingSimObjectsSubroutine(){
          addingSimObjects=false;
         }
@@ -164,6 +166,15 @@ namespace AKCondinoO.Voxels{
         }
         void OnAddingSimObjects(){
          addingSimObjects=true;
+        }
+        internal readonly SimObjectsBackgroundContainer simObjectsBG=new SimObjectsBackgroundContainer();
+        internal class SimObjectsBackgroundContainer:BackgroundContainer{
+         internal NativeList<RaycastCommand>GetGroundRays;
+         internal NativeList<RaycastHit    >GetGroundHits;
+        }
+        internal class SimObjectsMultithreaded:BaseMultithreaded<SimObjectsBackgroundContainer>{
+         protected override void Execute(){
+         }
         }
         internal MarchingCubesBackgroundContainer marchingCubesBG;
         internal class MarchingCubesBackgroundContainer:BackgroundContainer{

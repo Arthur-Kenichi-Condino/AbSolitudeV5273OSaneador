@@ -351,7 +351,6 @@ namespace AKCondinoO.Sims{
              gO.transform.rotation=persistentData.rotation;
              gO.transform.localScale=persistentData.localScale;
             }else{
-             persistentData=new SimObject.PersistentData();
              gO.transform.position=at.position;
              gO.transform.rotation=Quaternion.Euler(at.rotation);
              gO.transform.localScale=at.scale;
@@ -395,7 +394,7 @@ namespace AKCondinoO.Sims{
         #region loading
         internal readonly PersistentDataLoadingBackgroundContainer persistentDataLoadingBG=new PersistentDataLoadingBackgroundContainer();
         internal class PersistentDataLoadingBackgroundContainer:BackgroundContainer{
-         internal readonly Dictionary<(Type simType,ulong number),(Vector3 position,Vector3 rotation,Vector3 scale)>specificIdsToLoad=new Dictionary<(Type,ulong),(Vector3,Vector3,Vector3)>();
+         internal readonly Dictionary<(Type simType,ulong number),(Vector3 position,Vector3 eulerAngles,Vector3 localScale)>specificIdsToLoad=new Dictionary<(Type,ulong),(Vector3,Vector3,Vector3)>();
          internal readonly HashSet<int>inputcnkIdx=new HashSet<int>();
          internal readonly SpawnData output=new SpawnData();
         }
@@ -433,13 +432,14 @@ namespace AKCondinoO.Sims{
                int persistentDataStringEnd=simObjectString.IndexOf(" }",persistentDataStringStart)+2;
                string persistentDataString=simObjectString.Substring(persistentDataStringStart,persistentDataStringEnd-persistentDataStringStart);
                SimObject.PersistentData persistentData=SimObject.PersistentData.Parse(persistentDataString);
-               if(container.specificIdsToLoad.TryGetValue(outputId,out(Vector3 position,Vector3 rotation,Vector3 scale)outputTransform)){
-                persistentData.position=outputTransform.position;
-                persistentData.rotation=Quaternion.Euler(outputTransform.rotation);
-                persistentData.localScale=outputTransform.scale;
+               if(container.specificIdsToLoad.TryGetValue(outputId,out(Vector3 position,Vector3 eulerAngles,Vector3 localScale)outputTransformData)){
+                persistentData.position=outputTransformData.position;
+                persistentData.rotation=Quaternion.Euler(outputTransformData.eulerAngles);
+                persistentData.localScale=outputTransformData.localScale;
                 container.output.useSpecificIds.Add(outputId);
                 container.output.persistentData.Add(outputId,persistentData);
-                container.output.at.Add((outputTransform.position,outputTransform.rotation,outputTransform.scale,outputId.simType,outputId.number));
+                container.output.at.Add((outputTransformData.position,outputTransformData.eulerAngles,outputTransformData.localScale,outputId.simType,outputId.number));
+                container.specificIdsToLoad.Remove(outputId);
                }else{
                 container.output.persistentData.Add(outputId,persistentData);
                 container.output.at.Add((persistentData.position,persistentData.rotation.eulerAngles,persistentData.localScale,outputId.simType,outputId.number));

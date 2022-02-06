@@ -18,12 +18,14 @@ namespace AKCondinoO.Sims{
            SimObjectSpawner.Singleton.persistentDataCache[sO.id.Value]=this;
           }
          }
-         static readonly CultureInfo ci=CultureInfo.GetCultureInfo("en");
+         static readonly CultureInfo en=CultureInfo.GetCultureInfo("en");
          public override string ToString(){
-          return string.Format(ci,"persistentData={{ position={0}, }}",position);
+          return string.Format(en,"persistentData={{ position={0}, }}",position);
          }
          public static PersistentData Parse(string s){
           PersistentData persistentData=new PersistentData();
+          int positionStringStart=s.IndexOf("position=(");
+          int positionStringEnd=s.IndexOf("), ",positionStringStart);
           return persistentData;
          }
         }

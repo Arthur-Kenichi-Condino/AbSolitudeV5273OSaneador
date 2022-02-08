@@ -147,7 +147,8 @@ namespace AKCondinoO.Sims{
           }
          }
         }
-        internal void OnVoxelTerrainLoaded(VoxelTerrain cnk){
+        internal void OnVoxelTerrainReady(VoxelTerrain cnk){
+         cnkIdxToLoad.Add(cnk.cnkIdx.Value);
         }
         [SerializeField]int       DEBUG_CREATE_SIM_OBJECT_AMOUNT;
         [SerializeField]Vector3   DEBUG_CREATE_SIM_OBJECT_ROTATION;
@@ -167,6 +168,7 @@ namespace AKCondinoO.Sims{
         internal readonly Dictionary<Type,LinkedList<SimObject>>pool=new Dictionary<Type,LinkedList<SimObject>>();
          internal readonly Dictionary<(Type simType,ulong number),SimObject>active=new Dictionary<(Type,ulong),SimObject>();
         readonly SpawnData spawnData=new SpawnData();
+        readonly HashSet<int>cnkIdxToLoad=new HashSet<int>();
         bool savingPersistentData;
         bool loadingPersistentData;
         void Update(){

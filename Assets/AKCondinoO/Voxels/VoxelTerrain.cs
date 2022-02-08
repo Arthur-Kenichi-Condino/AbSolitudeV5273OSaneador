@@ -1,3 +1,6 @@
+#if UNITY_EDITOR
+    #define ENABLE_DEBUG_LOG
+#endif
 using AKCondinoO.Sims;
 using AKCondinoO.Voxels.Biomes;
 using LibNoise;
@@ -6,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
@@ -272,6 +276,8 @@ namespace AKCondinoO.Voxels{
          internal NativeList<RaycastHit    >GetGroundHits;
                 internal readonly List<(int x,int z)>gotGroundRays=new List<(int,int)>();
          internal readonly Dictionary<int,RaycastHit>gotGroundHits=new Dictionary<int,RaycastHit>(Width*Depth);
+         internal readonly Dictionary<(int x,int z),(Type simType,Biome.SimTypeSpawnSettings simTypeSpawnSettings)>simTypeAt=new Dictionary<(int,int),(Type,Biome.SimTypeSpawnSettings)>();
+          internal readonly Dictionary<(int x,int z),Biome.SimTypeSpawnModifiers>modifiers=new Dictionary<(int,int),Biome.SimTypeSpawnModifiers>();
          internal readonly SimObjectSpawner.SpawnData toSpawn=new SimObjectSpawner.SpawnData(Width*Depth);
          internal AddSimObjectsBackgroundContainer(){
           rotationModifierPerlin=new Perlin(frequency:Mathf.Pow(2,-.25f),lacunarity:3.5,persistence:0.8,octaves:6,seed:VoxelSystem.biome.Seed,quality:QualityMode.Low);
@@ -279,14 +285,38 @@ namespace AKCondinoO.Voxels{
          }
         }
         internal class AddSimObjectsMultithreaded:BaseMultithreaded<AddSimObjectsBackgroundContainer>{
+         readonly static object mutex=new object();
+         internal readonly FileStream addedSimObjectsFileStream;
+          internal readonly StreamWriter addedSimObjectsFileStreamWriter;
+          internal readonly StreamReader addedSimObjectsFileStreamReader;
+           internal readonly StringBuilder addedSimObjectsStringBuilder=new StringBuilder();
          readonly Dictionary<int,int>spacingAllTypesAtZ=new Dictionary<int,int>();
          readonly Dictionary<int,int>spacingAllTypesAtX=new Dictionary<int,int>();
+         internal AddSimObjectsMultithreaded(){
+          addedSimObjectsFileStream=new FileStream(VoxelSystem.addedSimObjectsFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
+           addedSimObjectsFileStreamWriter=new StreamWriter(addedSimObjectsFileStream);
+           addedSimObjectsFileStreamReader=new StreamReader(addedSimObjectsFileStream);
+         }
          protected override void Cleanup(){
           spacingAllTypesAtZ.Clear();
           spacingAllTypesAtX.Clear();
          }
          protected override void Execute(){
           if(container.executionMode==AddSimObjectsBackgroundContainer.ExecutionMode.SetGetGroundRays){
+           lock(mutex){
+            addedSimObjectsFileStream.Position=0L;
+            addedSimObjectsFileStreamReader.DiscardBufferedData();
+            string line;
+            while((line=addedSimObjectsFileStreamReader.ReadLine())!=null){
+             if(string.IsNullOrEmpty(line)){continue;}
+             if(int.Parse(line)==container.cnkIdx){
+              //Logger.Debug("already added sim objects for cnkIdx:"+container.cnkIdx);
+              return;
+             }
+            }
+           }
+           container.simTypeAt.Clear();
+           container.modifiers.Clear();
            Vector3Int vCoord1=new Vector3Int(0,Height/2-1,0);
            for(vCoord1.x=0             ;vCoord1.x<Width;vCoord1.x++){
            for(vCoord1.z=0             ;vCoord1.z<Depth;vCoord1.z++){
@@ -351,11 +381,36 @@ namespace AKCondinoO.Voxels{
              container.GetGroundRays.AddNoResize(new RaycastCommand(from,Vector3.down,Height,PhysHelper.VoxelTerrain));
              container.GetGroundHits.AddNoResize(new RaycastHit    ()                                                );
              container.gotGroundRays.Add((vCoord1.x,vCoord1.z));
+             container.simTypeAt.Add((vCoord1.x,vCoord1.z),simTypePicked.Value);
+             container.modifiers.Add((vCoord1.x,vCoord1.z),modifiers);
             }
            }
            }
           }else if(container.executionMode==AddSimObjectsBackgroundContainer.ExecutionMode.AddSimObjectsToSpawnData){
+           Vector3Int vCoord1=new Vector3Int(0,Height/2-1,0);
+           for(vCoord1.x=0             ;vCoord1.x<Width;vCoord1.x++){
+           for(vCoord1.z=0             ;vCoord1.z<Depth;vCoord1.z++){
+            int index=vCoord1.z+vCoord1.x*Depth;
+            if(container.gotGroundHits.TryGetValue(index,out RaycastHit floor)){
+             (Type simType,Biome.SimTypeSpawnSettings simTypeSpawnSettings)simTypeAt=container.simTypeAt[(vCoord1.x,vCoord1.z)];
+             Biome.SimTypeSpawnModifiers modifiers=container.modifiers[(vCoord1.x,vCoord1.z)];
+             Quaternion rotation=Quaternion.SlerpUnclamped(Quaternion.identity,Quaternion.FromToRotation(Vector3.up,floor.normal),simTypeAt.simTypeSpawnSettings.verticalRotationFactor)*Quaternion.Euler(new Vector3(0f,modifiers.rotation,0f));
+             Vector3 position=new Vector3(floor.point.x,floor.point.y-modifiers.scale.y*simTypeAt.simTypeSpawnSettings.rootsDepth,floor.point.z)+rotation*(Vector3.down*modifiers.scale.y);
+             container.toSpawn.at.Add((position,rotation.eulerAngles,modifiers.scale,simTypeAt.simType,null));
+            }
+           }
+           }
           }else if(container.executionMode==AddSimObjectsBackgroundContainer.ExecutionMode.SaveToFileThatSimObjectsWereAdded){
+           lock(mutex){
+            addedSimObjectsStringBuilder.Clear();
+            addedSimObjectsFileStream.Position=0L;
+            addedSimObjectsFileStreamReader.DiscardBufferedData();
+            addedSimObjectsStringBuilder.Append(addedSimObjectsFileStreamReader.ReadToEnd());
+            addedSimObjectsStringBuilder.AppendFormat("{0}{1}",container.cnkIdx,Environment.NewLine);
+            addedSimObjectsFileStream.SetLength(0L);
+            addedSimObjectsFileStreamWriter.Write(addedSimObjectsStringBuilder.ToString());
+            addedSimObjectsFileStreamWriter.Flush();
+           }
           }
          }
         }

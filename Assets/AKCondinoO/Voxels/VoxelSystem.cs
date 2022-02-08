@@ -295,12 +295,14 @@ namespace AKCondinoO.Voxels{
         internal VoxelTerrain[]terrain;
         internal readonly VoxelTerrain.MarchingCubesMultithreaded[]marchingCubesBGThreads=new VoxelTerrain.MarchingCubesMultithreaded[Environment.ProcessorCount];
         internal readonly VoxelTerrain.AddSimObjectsMultithreaded[]addSimObjectsBGThreads=new VoxelTerrain.AddSimObjectsMultithreaded[Environment.ProcessorCount];
+        internal static string addedSimObjectsFile;
         internal static string editsFile;
         #region Awake
         void Awake(){if(Singleton==null){Singleton=this;}else{DestroyImmediate(this);return;}
          Core.Singleton.OnDestroyingCoreEvent+=OnDestroyingCoreEvent;
          editsFile=string.Format("{0}{1}",Core.savePath,"edits.txt");
          new FileStream(VoxelSystem.editsFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite).Dispose();
+         addedSimObjectsFile=string.Format("{0}{1}",Core.savePath,"addedSimObjectsAt.txt");
          AtlasHelper.GetAtlasData(PrefabVoxelTerrain.GetComponent<MeshRenderer>().sharedMaterial);
          biome.Seed=0;
          VoxelTerrain.MarchingCubesMultithreaded.Stop=false;for(int i=0;i<marchingCubesBGThreads.Length;++i){marchingCubesBGThreads[i]=new VoxelTerrain.MarchingCubesMultithreaded();}
@@ -326,6 +328,8 @@ namespace AKCondinoO.Voxels{
           //Logger.Error("terrain AddSimObjects tasks will stop with pending work");
          }
          VoxelTerrain.AddSimObjectsMultithreaded.Stop=true;for(int i=0;i<addSimObjectsBGThreads.Length;++i){addSimObjectsBGThreads[i].Wait();
+          addSimObjectsBGThreads[i].addedSimObjectsFileStreamWriter.Dispose();
+          addSimObjectsBGThreads[i].addedSimObjectsFileStreamReader.Dispose();
          }
          terrainEditingBG.IsCompleted(terrainEditingBGThread.IsRunning,-1);
          if(TerrainEditingMultithreaded.Clear()!=0){

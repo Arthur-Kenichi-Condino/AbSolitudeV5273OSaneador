@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
     #define ENABLE_DEBUG_LOG
 #endif
+using AKCondinoO.Voxels;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -145,6 +146,8 @@ namespace AKCondinoO.Sims{
            persistentDataSavingBG.releasedIds.Add(kvp.Key,new List<ulong>(kvp.Value));
           }
          }
+        }
+        internal void OnVoxelTerrainLoaded(VoxelTerrain cnk){
         }
         [SerializeField]int       DEBUG_CREATE_SIM_OBJECT_AMOUNT;
         [SerializeField]Vector3   DEBUG_CREATE_SIM_OBJECT_ROTATION;

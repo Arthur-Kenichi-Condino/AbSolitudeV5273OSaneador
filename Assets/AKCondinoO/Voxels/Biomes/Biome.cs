@@ -1,6 +1,8 @@
+using AKCondinoO.Sims;
 using LibNoise;
 using LibNoise.Generator;
 using LibNoise.Operator;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using static AKCondinoO.Voxels.VoxelSystem;
@@ -15,6 +17,12 @@ namespace AKCondinoO.Voxels.Biomes{
        random[1]=new System.Random(random[0].Next());
        SetModules();
       }
+     }
+     internal void DisposeModules(){
+      foreach(var module in modules){
+       module.Dispose();
+      }
+      modules.Clear();
      }
      protected virtual int rndIdx{get{return 1;}}
      protected readonly List<ModuleBase>modules=new List<ModuleBase>();
@@ -47,6 +55,7 @@ namespace AKCondinoO.Voxels.Biomes{
          ModuleBase module4c=new Multiply(lhs:module4b,rhs:module1);
       modules.Add(module4c);
       selectors[0]=(Select)module4b;
+      modules.Add(simTypeSpawnChancePerlin=new Perlin(frequency:Mathf.Pow(2,-2),lacunarity:2.0,persistence:0.5,octaves:6,seed:seed_v,quality:QualityMode.Low));
      }
      readonly protected Select[]selectors=new Select[1];
      protected virtual int SelectAt(Vector3 noiseInput){
@@ -107,6 +116,66 @@ namespace AKCondinoO.Voxels.Biomes{
       MaterialId m;
       m=materialIdPicking[SelectAt(noiseInput)];
       return materialIdPerHeightNoiseCache!=null?materialIdPerHeightNoiseCache[0][oftIdx][noiseIndex]=m:m;
+     }
+     internal struct SimTypeSpawnSettings{
+      internal float chance;
+      internal float verticalRotationFactor;
+      internal Vector3 minScale;
+      internal Vector3 maxScale;
+      internal float rootsDepth;
+      internal Vector3 spacing;
+      internal Vector3 spacingAll;
+     }
+     readonly protected Dictionary<Type,SimTypeSpawnSettings[]>simTypeSpawnSettings=new Dictionary<Type,SimTypeSpawnSettings[]>(){
+      {
+       typeof(Pinus_elliottii_1),
+       new SimTypeSpawnSettings[]{
+        new SimTypeSpawnSettings{
+         chance=.125f,
+         verticalRotationFactor=.125f,
+         minScale=Vector3.one*.5f,
+         maxScale=Vector3.one*1.5f,
+         rootsDepth=1.2f,
+         spacing=Vector3.one*4.8f,
+         spacingAll=Vector3.one*2.4f,
+        },
+       }
+      },
+     };
+     readonly protected Dictionary<int,Type[]>simTypePicking=new Dictionary<int,Type[]>{
+      {
+       1,
+       new Type[]{
+        typeof(Pinus_elliottii_1),
+       }
+      },
+     };
+     protected Perlin simTypeSpawnChancePerlin;
+     internal(Type simType,SimTypeSpawnSettings simTypeSpawnSettings)?SimType(Vector3Int noiseInputRounded){
+                                                                      Vector3 noiseInput=noiseInputRounded+deround;
+      if(simTypePicking.TryGetValue(SelectAt(noiseInput),out Type[]simTypesPicked)){
+       foreach(Type simType in simTypesPicked){SimTypeSpawnSettings simTypeSpawnSettings=this.simTypeSpawnSettings[simType][0];
+        float chance=simTypeSpawnSettings.chance/simTypesPicked.Length;
+        float dicing=((float)simTypeSpawnChancePerlin.GetValue(noiseInput.z,noiseInput.x,0)+1f)/2f;
+        if(dicing<=chance){
+         return(simType,simTypeSpawnSettings);
+        }
+       }
+      }
+      return null;
+     }
+     internal struct SimTypeSpawnModifiers{
+      internal float rotation;
+      internal Vector3 scale;
+     }
+     internal virtual SimTypeSpawnModifiers SpawnModifiers(Vector3Int noiseInputRounded,SimTypeSpawnSettings spawnSettings,Perlin rotationModifierPerlin,Perlin scaleModifierPerlin){
+                                                   Vector3 noiseInput=noiseInputRounded+deround;
+      float rotation=(float)rotationModifierPerlin.GetValue(noiseInput.z,noiseInput.x,0)*720f;
+      Vector3 scale=Vector3.Lerp(spawnSettings.minScale,spawnSettings.maxScale,Mathf.Clamp01(((float)scaleModifierPerlin.GetValue(noiseInput.z,noiseInput.x,0)+1f)/2f));
+      return new SimTypeSpawnModifiers{
+       rotation=rotation,
+       scale=scale,
+      };
      }
     }
 }

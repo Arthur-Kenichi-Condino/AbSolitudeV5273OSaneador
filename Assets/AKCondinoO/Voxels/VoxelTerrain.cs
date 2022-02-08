@@ -1,3 +1,7 @@
+using AKCondinoO.Sims;
+using AKCondinoO.Voxels.Biomes;
+using LibNoise;
+using LibNoise.Generator;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -39,15 +43,20 @@ namespace AKCondinoO.Voxels{
          marchingCubesBG=new MarchingCubesBackgroundContainer(synchronizer);
          marchingCubesBG.TempVer=new NativeList<Vertex>(Allocator.Persistent);
          marchingCubesBG.TempTri=new NativeList<UInt32>(Allocator.Persistent);
-         simObjectsBG.GetGroundRays=new NativeList<RaycastCommand>(Width*Depth,Allocator.Persistent);
-         simObjectsBG.GetGroundHits=new NativeList<RaycastHit    >(Width*Depth,Allocator.Persistent);
+         addSimObjectsBG.GetGroundRays=new NativeList<RaycastCommand>(Width*Depth,Allocator.Persistent);
+         addSimObjectsBG.GetGroundHits=new NativeList<RaycastHit    >(Width*Depth,Allocator.Persistent);
         }
         internal void OnExit(){
          marchingCubesBG.IsCompleted(VoxelSystem.Singleton.marchingCubesBGThreads[0].IsRunning,-1);
+         bakeJobHandle.Complete();
          if(marchingCubesBG.TempVer.IsCreated)marchingCubesBG.TempVer.Dispose();
          if(marchingCubesBG.TempTri.IsCreated)marchingCubesBG.TempTri.Dispose();
-         if(simObjectsBG.GetGroundRays.IsCreated)simObjectsBG.GetGroundRays.Dispose();
-         if(simObjectsBG.GetGroundHits.IsCreated)simObjectsBG.GetGroundHits.Dispose();
+         addSimObjectsBG.IsCompleted(VoxelSystem.Singleton.addSimObjectsBGThreads[0].IsRunning,-1);
+         doRaycastsHandle.Complete();
+         if(addSimObjectsBG.GetGroundRays.IsCreated)addSimObjectsBG.GetGroundRays.Dispose();
+         if(addSimObjectsBG.GetGroundHits.IsCreated)addSimObjectsBG.GetGroundHits.Dispose();
+         addSimObjectsBG.rotationModifierPerlin.Dispose();
+          addSimObjectsBG.scaleModifierPerlin  .Dispose();
         }
         Vector2Int cCoord;
         Vector2Int cnkRgn;
@@ -90,8 +99,87 @@ namespace AKCondinoO.Voxels{
                 }
             }
         }
+        JobHandle doRaycastsHandle;
+        bool addingSimObjectsSavingToFileThatSimObjectsWereAdded;
+        bool addingSimObjectsSpawning;
+        bool addingSimObjectsToSpawnData;
+        bool addingSimObjectsDoingRaycasts;
+        bool addingSimObjectsSettingGetGroundRays;
+        bool addingSimObjectsSetGetGroundRays;
         internal void AddingSimObjectsSubroutine(){
-         addingSimObjects=false;
+         if(addingSimObjectsSavingToFileThatSimObjectsWereAdded){
+             if(addSimObjectsBG.IsCompleted(VoxelSystem.Singleton.addSimObjectsBGThreads[0].IsRunning)){
+            addingSimObjectsSavingToFileThatSimObjectsWereAdded=false;
+                 addingSimObjects=false;
+             }
+         }else{
+             if(addingSimObjectsSpawning){
+                 if(addSimObjectsBG.toSpawn.dequeued){
+                addingSimObjectsSpawning=false;
+                     addSimObjectsBG.executionMode=AddSimObjectsBackgroundContainer.ExecutionMode.SaveToFileThatSimObjectsWereAdded;
+                     AddSimObjectsMultithreaded.Schedule(addSimObjectsBG);
+                     addingSimObjectsSavingToFileThatSimObjectsWereAdded=true;
+                 }
+             }else{
+                 if(addingSimObjectsToSpawnData){
+                     if(addSimObjectsBG.IsCompleted(VoxelSystem.Singleton.addSimObjectsBGThreads[0].IsRunning)){
+                    addingSimObjectsToSpawnData=false;
+                         addSimObjectsBG.toSpawn.dequeued=false;
+                         SimObjectSpawner.SpawnQueue.Enqueue(addSimObjectsBG.toSpawn);
+                         addingSimObjectsSpawning=true;
+                     }
+                 }else{
+                     if(addingSimObjectsDoingRaycasts){
+                         if(doRaycastsHandle.IsCompleted){
+                        addingSimObjectsDoingRaycasts=false;
+                             doRaycastsHandle.Complete();
+                             Vector3Int vCoord1=new Vector3Int(0,0,0);
+                             int i=0;
+                             for(vCoord1.x=0             ;vCoord1.x<Width;vCoord1.x++){
+                             for(vCoord1.z=0             ;vCoord1.z<Depth;vCoord1.z++){
+                              if(addSimObjectsBG.gotGroundRays.Contains((vCoord1.x,vCoord1.z))){
+                               RaycastHit hit=addSimObjectsBG.GetGroundHits[i++];
+                               if(hit.collider!=null){
+                                int index=vCoord1.z+vCoord1.x*Depth;
+                                addSimObjectsBG.gotGroundHits.Add(index,hit);   
+                                #if UNITY_EDITOR
+                                Debug.DrawRay(addSimObjectsBG.GetGroundHits[i-1].point,(addSimObjectsBG.GetGroundRays[i-1].from-addSimObjectsBG.GetGroundHits[i-1].point).normalized,Color.white,5f);
+                                #endif
+                               }
+                              }
+                             }}
+                             addSimObjectsBG.executionMode=AddSimObjectsBackgroundContainer.ExecutionMode.AddSimObjectsToSpawnData;
+                             AddSimObjectsMultithreaded.Schedule(addSimObjectsBG);
+                             addingSimObjectsToSpawnData=true;
+                         }
+                     }else{
+                         if(addingSimObjectsSettingGetGroundRays){
+                             if(addSimObjectsBG.IsCompleted(VoxelSystem.Singleton.addSimObjectsBGThreads[0].IsRunning)){
+                            addingSimObjectsSettingGetGroundRays=false;
+                                 doRaycastsHandle=RaycastCommand.ScheduleBatch(addSimObjectsBG.GetGroundRays,addSimObjectsBG.GetGroundHits,1,default(JobHandle));
+                                 addingSimObjectsDoingRaycasts=true;
+                             }
+                         }else{
+                             if(addingSimObjectsSetGetGroundRays){
+                                addingSimObjectsSetGetGroundRays=false;
+                                 addSimObjectsBG.executionMode=AddSimObjectsBackgroundContainer.ExecutionMode.SetGetGroundRays;
+                                 AddSimObjectsMultithreaded.Schedule(addSimObjectsBG);
+                                 addingSimObjectsSettingGetGroundRays=true;
+                             }else{
+                                 addSimObjectsBG.GetGroundRays.Clear();
+                                 addSimObjectsBG.GetGroundHits.Clear();
+                                 addSimObjectsBG.gotGroundRays.Clear();
+                                 addSimObjectsBG.gotGroundHits.Clear();
+                                 addSimObjectsBG.cCoord=cCoord;
+                                 addSimObjectsBG.cnkRgn=cnkRgn;
+                                 addSimObjectsBG.cnkIdx=cnkIdx.Value;
+                                 addingSimObjectsSetGetGroundRays=true;
+                             }
+                         }
+                     }
+                 }
+             }
+         }
         }
         bool OnApplyingMovement(){
          if(marchingCubesBG.IsCompleted(VoxelSystem.Singleton.marchingCubesBGThreads[0].IsRunning)){
@@ -167,13 +255,108 @@ namespace AKCondinoO.Voxels{
         void OnAddingSimObjects(){
          addingSimObjects=true;
         }
-        internal readonly SimObjectsBackgroundContainer simObjectsBG=new SimObjectsBackgroundContainer();
-        internal class SimObjectsBackgroundContainer:BackgroundContainer{
+        internal readonly AddSimObjectsBackgroundContainer addSimObjectsBG=new AddSimObjectsBackgroundContainer();
+        internal class AddSimObjectsBackgroundContainer:BackgroundContainer{
+         internal Perlin rotationModifierPerlin;
+         internal Perlin  scaleModifierPerlin;
+         internal Vector2Int cCoord;
+         internal Vector2Int cnkRgn;
+         internal        int cnkIdx;
+         internal enum ExecutionMode{
+          SetGetGroundRays,
+          AddSimObjectsToSpawnData,
+          SaveToFileThatSimObjectsWereAdded,
+         }
+         internal ExecutionMode executionMode;
          internal NativeList<RaycastCommand>GetGroundRays;
          internal NativeList<RaycastHit    >GetGroundHits;
+                internal readonly List<(int x,int z)>gotGroundRays=new List<(int,int)>();
+         internal readonly Dictionary<int,RaycastHit>gotGroundHits=new Dictionary<int,RaycastHit>(Width*Depth);
+         internal readonly SimObjectSpawner.SpawnData toSpawn=new SimObjectSpawner.SpawnData(Width*Depth);
+         internal AddSimObjectsBackgroundContainer(){
+          rotationModifierPerlin=new Perlin(frequency:Mathf.Pow(2,-.25f),lacunarity:3.5,persistence:0.8,octaves:6,seed:VoxelSystem.biome.Seed,quality:QualityMode.Low);
+           scaleModifierPerlin  =new Perlin(frequency:Mathf.Pow(2,-.5f ),lacunarity:3.5,persistence:0.8,octaves:6,seed:VoxelSystem.biome.Seed,quality:QualityMode.Low);
+         }
         }
-        internal class SimObjectsMultithreaded:BaseMultithreaded<SimObjectsBackgroundContainer>{
+        internal class AddSimObjectsMultithreaded:BaseMultithreaded<AddSimObjectsBackgroundContainer>{
+         readonly Dictionary<int,int>spacingAllTypesAtZ=new Dictionary<int,int>();
+         readonly Dictionary<int,int>spacingAllTypesAtX=new Dictionary<int,int>();
+         protected override void Cleanup(){
+          spacingAllTypesAtZ.Clear();
+          spacingAllTypesAtX.Clear();
+         }
          protected override void Execute(){
+          if(container.executionMode==AddSimObjectsBackgroundContainer.ExecutionMode.SetGetGroundRays){
+           Vector3Int vCoord1=new Vector3Int(0,Height/2-1,0);
+           for(vCoord1.x=0             ;vCoord1.x<Width;vCoord1.x++){
+           for(vCoord1.z=0             ;vCoord1.z<Depth;vCoord1.z++){
+            bool blocked=false;
+            if(spacingAllTypesAtX.ContainsKey(vCoord1.x)){
+             spacingAllTypesAtX[vCoord1.x]--;
+             if(spacingAllTypesAtX[vCoord1.x]>=0){
+              blocked=true;
+             }
+             if(spacingAllTypesAtX[vCoord1.x]<=0){
+              spacingAllTypesAtX.Remove(vCoord1.x);
+             }
+            }
+            if(spacingAllTypesAtZ.ContainsKey(vCoord1.z)){
+             spacingAllTypesAtZ[vCoord1.z]--;
+             if(spacingAllTypesAtZ[vCoord1.z]>=0){
+              blocked=true;
+             }
+             if(spacingAllTypesAtZ[vCoord1.z]<=0){
+              spacingAllTypesAtZ.Remove(vCoord1.z);
+             }
+            }
+            if(blocked){
+             continue;
+            }
+            Vector3Int noiseInput=vCoord1;noiseInput.x+=container.cnkRgn.x;
+                                          noiseInput.z+=container.cnkRgn.y;
+            (Type simType,Biome.SimTypeSpawnSettings simTypeSpawnSettings)?simTypePicked=VoxelSystem.biome.SimType(noiseInput);
+            if(simTypePicked!=null){
+             Biome.SimTypeSpawnModifiers modifiers=VoxelSystem.biome.SpawnModifiers(noiseInput,simTypePicked.Value.simTypeSpawnSettings,container.rotationModifierPerlin,container.scaleModifierPerlin);
+             Vector3 spacing=simTypePicked.Value.simTypeSpawnSettings.spacing;
+                     spacing=Vector3.Scale(spacing,modifiers.scale);
+                     spacing.x=Mathf.Max(spacing.x,1f);
+                     spacing.y=Mathf.Max(spacing.y,1f);
+                     spacing.z=Mathf.Max(spacing.z,1f);
+             Vector3 spacingAll=simTypePicked.Value.simTypeSpawnSettings.spacingAll;
+                     spacingAll=Vector3.Scale(spacingAll,modifiers.scale);
+                     spacingAll.x=Mathf.Max(spacingAll.x,1f);
+                     spacingAll.y=Mathf.Max(spacingAll.y,1f);
+                     spacingAll.z=Mathf.Max(spacingAll.z,1f);
+             if(Depth-1-vCoord1.z<=spacingAll.z){
+              blocked=true;
+             }
+             if(Width-1-vCoord1.x<=spacingAll.x){
+              blocked=true;
+             }
+             if(blocked){
+              continue;
+             }
+             spacingAllTypesAtX[vCoord1.x]=Mathf.CeilToInt(spacingAll.z);
+             int spacingAllX=Mathf.CeilToInt(spacingAll.x);
+             int zHalfRange=Mathf.CeilToInt(spacingAll.z/2f);
+             for(int z=vCoord1.z-zHalfRange;z<=vCoord1.z+zHalfRange;++z){
+              if(z<0||z>=Depth){
+               continue;
+              }
+              spacingAllTypesAtZ[z]=spacingAllX;
+             }
+             Vector3 from=vCoord1;
+                     from.x+=(container.cnkRgn.x-Width/2f)+.5f;
+                     from.z+=(container.cnkRgn.y-Depth/2f)+.5f;
+             container.GetGroundRays.AddNoResize(new RaycastCommand(from,Vector3.down,Height,PhysHelper.VoxelTerrain));
+             container.GetGroundHits.AddNoResize(new RaycastHit    ()                                                );
+             container.gotGroundRays.Add((vCoord1.x,vCoord1.z));
+            }
+           }
+           }
+          }else if(container.executionMode==AddSimObjectsBackgroundContainer.ExecutionMode.AddSimObjectsToSpawnData){
+          }else if(container.executionMode==AddSimObjectsBackgroundContainer.ExecutionMode.SaveToFileThatSimObjectsWereAdded){
+          }
          }
         }
         internal MarchingCubesBackgroundContainer marchingCubesBG;

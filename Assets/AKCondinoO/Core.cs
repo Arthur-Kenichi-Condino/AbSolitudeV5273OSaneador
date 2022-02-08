@@ -17,6 +17,7 @@ namespace AKCondinoO{
         void Awake(){if(Singleton==null){Singleton=this;}else{DestroyImmediate(this);return;}
          savePath=string.Format("{0}{1}/",saveLocation,saveName);
          Directory.CreateDirectory(savePath);
+         PhysHelper.SetLayerMasks();
         }
         internal event EventHandler OnDestroyingCoreEvent;
         internal class OnDestroyingCoreEventArgs:EventArgs{
@@ -32,6 +33,14 @@ namespace AKCondinoO{
           Logger.Error("ThreadCount>0(ThreadCount=="+ThreadCount+"):one or more threads weren't stopped nor waited for termination");
          }
          if(Singleton==this){Singleton=null;}
+        }
+    }
+    internal static class PhysHelper{
+        internal static int VoxelTerrain;
+        internal static int      NavMesh;
+        internal static void SetLayerMasks(){
+         VoxelTerrain=1<<LayerMask.NameToLayer("VoxelTerrain");
+              NavMesh=1<<LayerMask.NameToLayer("VoxelTerrain");
         }
     }
     internal static class Logger{

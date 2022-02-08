@@ -294,6 +294,7 @@ namespace AKCondinoO.Voxels{
         internal static readonly Biome biome=new Biome();
         internal VoxelTerrain[]terrain;
         internal readonly VoxelTerrain.MarchingCubesMultithreaded[]marchingCubesBGThreads=new VoxelTerrain.MarchingCubesMultithreaded[Environment.ProcessorCount];
+        internal readonly VoxelTerrain.AddSimObjectsMultithreaded[]addSimObjectsBGThreads=new VoxelTerrain.AddSimObjectsMultithreaded[Environment.ProcessorCount];
         internal static string editsFile;
         #region Awake
         void Awake(){if(Singleton==null){Singleton=this;}else{DestroyImmediate(this);return;}
@@ -303,6 +304,7 @@ namespace AKCondinoO.Voxels{
          AtlasHelper.GetAtlasData(PrefabVoxelTerrain.GetComponent<MeshRenderer>().sharedMaterial);
          biome.Seed=0;
          VoxelTerrain.MarchingCubesMultithreaded.Stop=false;for(int i=0;i<marchingCubesBGThreads.Length;++i){marchingCubesBGThreads[i]=new VoxelTerrain.MarchingCubesMultithreaded();}
+         VoxelTerrain.AddSimObjectsMultithreaded.Stop=false;for(int i=0;i<addSimObjectsBGThreads.Length;++i){addSimObjectsBGThreads[i]=new VoxelTerrain.AddSimObjectsMultithreaded();}
          TerrainEditingMultithreaded.Stop=false;terrainEditingBGThread=new TerrainEditingMultithreaded();
          StartCoroutine(ProceduralGenerationFollowUpCoroutine());
         }
@@ -320,6 +322,11 @@ namespace AKCondinoO.Voxels{
           marchingCubesBGThreads[i].editsFileStream      .Dispose();
           marchingCubesBGThreads[i].editsFileStreamReader.Dispose();
          }
+         if(VoxelTerrain.AddSimObjectsMultithreaded.Clear()!=0){
+          //Logger.Error("terrain AddSimObjects tasks will stop with pending work");
+         }
+         VoxelTerrain.AddSimObjectsMultithreaded.Stop=true;for(int i=0;i<addSimObjectsBGThreads.Length;++i){addSimObjectsBGThreads[i].Wait();
+         }
          terrainEditingBG.IsCompleted(terrainEditingBGThread.IsRunning,-1);
          if(TerrainEditingMultithreaded.Clear()!=0){
           //Logger.Error("TerrainEditing task will stop with pending work");
@@ -327,6 +334,7 @@ namespace AKCondinoO.Voxels{
          TerrainEditingMultithreaded.Stop=true;terrainEditingBGThread.Wait();
          terrainEditingBGThread.editsFileStreamWriter.Dispose();
          terrainEditingBGThread.editsFileStreamReader.Dispose();
+         biome.DisposeModules();
          if(Singleton==this){Singleton=null;}
         }
         void EditTerrain(Vector3 at,TerrainEditingBackgroundContainer.EditMode mode,Vector3Int size,double density,MaterialId material,int smoothness){

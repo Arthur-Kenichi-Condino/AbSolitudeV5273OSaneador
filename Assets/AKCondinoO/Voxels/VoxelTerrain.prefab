@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: -3812193099080300713}
   - component: {fileID: -6896743459338889003}
   - component: {fileID: -3050479613162964657}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: VoxelTerrain
   m_TagString: Untagged
   m_Icon: {fileID: 0}

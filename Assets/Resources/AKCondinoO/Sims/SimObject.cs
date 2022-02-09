@@ -67,6 +67,7 @@ namespace AKCondinoO.Sims{
         internal Bounds localBounds;
          protected readonly Vector3[]worldBoundsVertices=new Vector3[8];
         internal Collider[]colliders;
+        internal Renderer[]renderers;
         protected virtual void Awake(){
          foreach(Collider collider in colliders=GetComponentsInChildren<Collider>()){
           if(collider.CompareTag("SimObjectVolume")){
@@ -78,9 +79,11 @@ namespace AKCondinoO.Sims{
           }
          }
          localBounds.center=transform.InverseTransformPoint(localBounds.center);
+         renderers=GetComponentsInChildren<Renderer>();
         }
         internal LinkedListNode<SimObject>pooled;       
         internal virtual void OnActivated(){
+         EnableInteractions();
          TransformBoundsVertices();
          transform.hasChanged=false;
         }
@@ -111,10 +114,12 @@ namespace AKCondinoO.Sims{
          if(spawnerUnplaceRequest){
             spawnerUnplaceRequest=false;
              spawnerPoolRequest=false;
+             DisableInteractions();
              SimObjectSpawner.Singleton.DespawnReleaseIdQueue.Enqueue(this);
          }else{
           if(spawnerPoolRequest){
              spawnerPoolRequest=false;
+              DisableInteractions();
               SimObjectSpawner.Singleton.DespawnQueue.Enqueue(this);
           }else if((transform.hasChanged||SimObjectSpawner.Singleton.anyPlayerBoundsChanged)&&
             worldBoundsVertices.Any(
@@ -125,10 +130,27 @@ namespace AKCondinoO.Sims{
              }
             )
            ){
+              DisableInteractions();
               SimObjectSpawner.Singleton.DespawnQueue.Enqueue(this);
            }
          }
          transform.hasChanged=false;
+        }
+        void DisableInteractions(){
+         foreach(Collider collider in colliders){
+          collider.enabled=false;
+         }
+         foreach(Renderer renderer in renderers){
+          renderer.enabled=false;
+         }
+        }
+        void EnableInteractions(){
+         foreach(Collider collider in colliders){
+          collider.enabled=true;
+         }
+         foreach(Renderer renderer in renderers){
+          renderer.enabled=true;
+         }
         }
         void TransformBoundsVertices(){
          worldBoundsVertices[0]=transform.TransformPoint(localBounds.min.x,localBounds.min.y,localBounds.min.z);

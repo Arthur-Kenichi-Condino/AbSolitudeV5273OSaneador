@@ -291,6 +291,7 @@ namespace AKCondinoO.Voxels{
           }
          }
         }
+        [SerializeField]internal int marchingCubesExecutionCountLimit=8;
         internal static readonly Biome biome=new Biome();
         internal VoxelTerrain[]terrain;
         internal readonly VoxelTerrain.MarchingCubesMultithreaded[]marchingCubesBGThreads=new VoxelTerrain.MarchingCubesMultithreaded[Environment.ProcessorCount];
@@ -305,6 +306,7 @@ namespace AKCondinoO.Voxels{
          addedSimObjectsFile=string.Format("{0}{1}",Core.savePath,"addedSimObjectsAt.txt");
          AtlasHelper.GetAtlasData(PrefabVoxelTerrain.GetComponent<MeshRenderer>().sharedMaterial);
          biome.Seed=0;
+         VoxelTerrain.marchingCubesExecutionCount=0;
          VoxelTerrain.MarchingCubesMultithreaded.Stop=false;for(int i=0;i<marchingCubesBGThreads.Length;++i){marchingCubesBGThreads[i]=new VoxelTerrain.MarchingCubesMultithreaded();}
          VoxelTerrain.AddSimObjectsMultithreaded.Stop=false;for(int i=0;i<addSimObjectsBGThreads.Length;++i){addSimObjectsBGThreads[i]=new VoxelTerrain.AddSimObjectsMultithreaded();}
          TerrainEditingMultithreaded.Stop=false;terrainEditingBGThread=new TerrainEditingMultithreaded();

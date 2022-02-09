@@ -91,9 +91,8 @@ namespace AKCondinoO.Sims{
         }
         void OnDestroyingCoreEvent(object sender,EventArgs e){
          persistentDataSavingBG.IsCompleted(persistentDataSavingBGThread.IsRunning,-1);
-         List<(Type simType,ulong number)>unplacedIds=new List<(Type,ulong)>();
          foreach(var a in active){var sO=a.Value;
-          sO.OnExitSave(unplacedIds);
+          sO.OnExitSave();
          }
          OnSavingPersistentData(exitSave:true);
          PersistentDataSavingMultithreaded.Schedule(persistentDataSavingBG);

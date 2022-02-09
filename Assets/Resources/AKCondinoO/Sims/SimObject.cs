@@ -1,3 +1,6 @@
+#if UNITY_EDITOR
+    #define ENABLE_DEBUG_LOG
+#endif
 using AKCondinoO.Voxels;
 using System;
 using System.Collections.Generic;
@@ -68,6 +71,7 @@ namespace AKCondinoO.Sims{
          protected readonly Vector3[]worldBoundsVertices=new Vector3[8];
         internal Collider[]colliders;
         internal Renderer[]renderers;
+        internal readonly List<Collider>volumeColliders=new List<Collider>();
         protected virtual void Awake(){
          foreach(Collider collider in colliders=GetComponentsInChildren<Collider>()){
           if(collider.CompareTag("SimObjectVolume")){
@@ -76,6 +80,7 @@ namespace AKCondinoO.Sims{
            }else{
             localBounds.Encapsulate(collider.bounds);
            }
+           volumeColliders.Add(collider);
           }
          }
          localBounds.center=transform.InverseTransformPoint(localBounds.center);
@@ -93,7 +98,7 @@ namespace AKCondinoO.Sims{
         internal void OnPoolRequest(){
          spawnerPoolRequest=true;
         }
-        internal void OnExitSave(List<(Type simType,ulong number)>unplacedIds){
+        internal void OnExitSave(){
          if(this!=null){
           persistentData.UpdateData(this);
          }
@@ -104,6 +109,7 @@ namespace AKCondinoO.Sims{
          }
         }
         internal(Type simType,ulong number)?id=null;
+        bool isOverlapping;
         bool spawnerUnplaceRequest;
         bool spawnerPoolRequest;
         internal virtual void ManualUpdate(){
@@ -113,7 +119,11 @@ namespace AKCondinoO.Sims{
          }
          if(spawnerUnplaceRequest){
             spawnerUnplaceRequest=false;
-             spawnerPoolRequest=false;
+             DisableInteractions();
+             SimObjectSpawner.Singleton.DespawnReleaseIdQueue.Enqueue(this);
+         }else if(isOverlapping){
+                  isOverlapping=false;
+             Logger.Debug("is overlapping");
              DisableInteractions();
              SimObjectSpawner.Singleton.DespawnReleaseIdQueue.Enqueue(this);
          }else{
@@ -151,6 +161,7 @@ namespace AKCondinoO.Sims{
          foreach(Renderer renderer in renderers){
           renderer.enabled=true;
          }
+         isOverlapping=IsOverlappingNonAlloc();
         }
         void TransformBoundsVertices(){
          worldBoundsVertices[0]=transform.TransformPoint(localBounds.min.x,localBounds.min.y,localBounds.min.z);
@@ -161,6 +172,33 @@ namespace AKCondinoO.Sims{
          worldBoundsVertices[5]=transform.TransformPoint(localBounds.max.x,localBounds.max.y,localBounds.min.z);
          worldBoundsVertices[6]=transform.TransformPoint(localBounds.max.x,localBounds.max.y,localBounds.max.z);
          worldBoundsVertices[7]=transform.TransformPoint(localBounds.min.x,localBounds.max.y,localBounds.max.z);
+        }
+        Collider[]overlappedColliders=new Collider[8];
+        bool IsOverlappingNonAlloc(){
+         bool result=false;
+         for(int i=0;i<volumeColliders.Count;++i){
+          int overlappingsLength=0;
+          if(volumeColliders[i]is CapsuleCollider capsule){
+           var direction=new Vector3{[capsule.direction]=1};
+           var offset=capsule.height/2-capsule.radius;
+           var localPoint0=capsule.center-direction*offset;
+           var localPoint1=capsule.center+direction*offset;
+           var point0=transform.TransformPoint(localPoint0);
+           var point1=transform.TransformPoint(localPoint1);
+           while(overlappedColliders.Length<=(overlappingsLength=Physics.OverlapCapsuleNonAlloc(point0,point1,capsule.radius,overlappedColliders))&&overlappingsLength>0){
+            Array.Resize(ref overlappedColliders,overlappingsLength*2);
+           }
+           for(int j=0;j<overlappingsLength;++j){var overlapping=overlappedColliders[j];
+            if(overlapping.transform.root!=transform.root){//  it's not myself
+             SimObject sO;
+             if((sO=overlapping.transform.root.GetComponent<SimObject>())!=null&&!(sO is SimActor)){
+              result=true;
+             }
+            }
+           }
+          }
+         }
+         return result;
         }
         #if UNITY_EDITOR
         void OnDrawGizmos(){

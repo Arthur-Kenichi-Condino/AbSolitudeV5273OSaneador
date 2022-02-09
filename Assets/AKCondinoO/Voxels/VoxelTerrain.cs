@@ -186,12 +186,17 @@ namespace AKCondinoO.Voxels{
              }
          }
         }
+        internal static int marchingCubesExecutionCount=0;
         bool OnApplyingMovement(){
+         if(marchingCubesExecutionCount>=VoxelSystem.Singleton.marchingCubesExecutionCountLimit){
+          return false;
+         }
          if(marchingCubesBG.IsCompleted(VoxelSystem.Singleton.marchingCubesBGThreads[0].IsRunning)){
           worldBounds.center=transform.position=new Vector3(cnkRgn.x,0,cnkRgn.y);
           marchingCubesBG.cCoord=cCoord;
           marchingCubesBG.cnkRgn=cnkRgn;
           marchingCubesBG.cnkIdx=cnkIdx.Value;
+          marchingCubesExecutionCount++;
           MarchingCubesMultithreaded.Schedule(marchingCubesBG);
           return true;
          }
@@ -225,6 +230,7 @@ namespace AKCondinoO.Voxels{
         #endregion
         bool OnMeshDataSet(){
          if(marchingCubesBG.IsCompleted(VoxelSystem.Singleton.marchingCubesBGThreads[0].IsRunning)){
+          marchingCubesExecutionCount=Mathf.Max(0,--marchingCubesExecutionCount);
           mesh.Clear(false);
           bool resize;
           if(resize=marchingCubesBG.TempVer.Length>mesh.vertexCount){

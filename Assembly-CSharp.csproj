@@ -61,11 +61,14 @@
     <Compile Include="Assets\AKCondinoO\Voxels\VoxelTerrain.cs" />
     <Compile Include="Assets\Resources\AKCondinoO\Sims\SimObject.cs" />
     <Compile Include="Assets\AKCondinoO\Sims\SimObjectSpawner.cs" />
+    <Compile Include="Assets\Resources\AKCondinoO\Sims\SimTree.cs" />
     <Compile Include="Assets\AKCondinoO\Gameplayer.cs" />
     <Compile Include="Assets\AKCondinoO\Voxels\VoxelSystem.cs" />
-    <Compile Include="Assets\AKCondinoO\Core.cs" />
-    <Compile Include="Assets\Resources\AKCondinoO\Sims\SimTree.cs" />
     <Compile Include="Assets\Resources\AKCondinoO\Sims\Pinus_elliottii_1\Pinus_elliottii_1.cs" />
+    <Compile Include="Assets\AKCondinoO\Core.cs" />
+    <Compile Include="Assets\Resources\AKCondinoO\Sims\SimObjectVolume.cs" />
+    <Compile Include="Assets\Resources\AKCondinoO\Sims\SimActor.cs" />
+    <Compile Include="Assets\AKCondinoO\InputHandler.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\AKCondinoO\Voxels\VoxelTerrain.shader" />

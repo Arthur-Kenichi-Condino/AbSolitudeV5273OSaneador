@@ -115,6 +115,7 @@ namespace AKCondinoO.Voxels{
              if(addSimObjectsBG.IsCompleted(VoxelSystem.Singleton.addSimObjectsBGThreads[0].IsRunning)){
             addingSimObjectsSavingToFileThatSimObjectsWereAdded=false;
                  addingSimObjects=false;
+                 SimObjectSpawner.Singleton.OnVoxelTerrainReady(this);
              }
          }else{
              if(addingSimObjectsSpawning){

@@ -1,7 +1,10 @@
+using AKCondinoO.Voxels;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using UnityEngine;
+using static AKCondinoO.Voxels.VoxelSystem;
 namespace AKCondinoO.Sims{
     internal class SimObject:MonoBehaviour{
         internal readonly object synchronizer=new object();
@@ -61,10 +64,25 @@ namespace AKCondinoO.Sims{
           return persistentData;
          }
         }
+        internal Bounds localBounds;
+         protected readonly Vector3[]worldBoundsVertices=new Vector3[8];
+        internal Collider[]colliders;
         protected virtual void Awake(){
+         foreach(Collider collider in colliders=GetComponentsInChildren<Collider>()){
+          if(collider.CompareTag("SimObjectVolume")){
+           if(localBounds.extents==Vector3.zero){
+            localBounds=collider.bounds;
+           }else{
+            localBounds.Encapsulate(collider.bounds);
+           }
+          }
+         }
+         localBounds.center=transform.InverseTransformPoint(localBounds.center);
         }
         internal LinkedListNode<SimObject>pooled;       
-        internal virtual void OnActivated(bool load){
+        internal virtual void OnActivated(){
+         TransformBoundsVertices();
+         transform.hasChanged=false;
         }
         internal void OnUnplaceRequest(){
          spawnerUnplaceRequest=true;
@@ -87,6 +105,9 @@ namespace AKCondinoO.Sims{
         bool spawnerPoolRequest;
         internal virtual void ManualUpdate(){
          //Logger.Debug("ManualUpdate():"+id);
+         if(transform.hasChanged){
+          TransformBoundsVertices();
+         }
          if(spawnerUnplaceRequest){
             spawnerUnplaceRequest=false;
              spawnerPoolRequest=false;
@@ -95,8 +116,34 @@ namespace AKCondinoO.Sims{
           if(spawnerPoolRequest){
              spawnerPoolRequest=false;
               SimObjectSpawner.Singleton.DespawnQueue.Enqueue(this);
-          }
+          }else if((transform.hasChanged||SimObjectSpawner.Singleton.anyPlayerBoundsChanged)&&
+            worldBoundsVertices.Any(
+             v=>{
+              Vector2Int cCoord=vecPosTocCoord(v);
+              int cnkIdx=GetcnkIdx(cCoord.x,cCoord.y);
+              return!VoxelSystem.Singleton.terrainActive.ContainsKey(cnkIdx);
+             }
+            )
+           ){
+              SimObjectSpawner.Singleton.DespawnQueue.Enqueue(this);
+           }
          }
+         transform.hasChanged=false;
         }
+        void TransformBoundsVertices(){
+         worldBoundsVertices[0]=transform.TransformPoint(localBounds.min.x,localBounds.min.y,localBounds.min.z);
+         worldBoundsVertices[1]=transform.TransformPoint(localBounds.max.x,localBounds.min.y,localBounds.min.z);
+         worldBoundsVertices[2]=transform.TransformPoint(localBounds.max.x,localBounds.min.y,localBounds.max.z);
+         worldBoundsVertices[3]=transform.TransformPoint(localBounds.min.x,localBounds.min.y,localBounds.max.z);
+         worldBoundsVertices[4]=transform.TransformPoint(localBounds.min.x,localBounds.max.y,localBounds.min.z);
+         worldBoundsVertices[5]=transform.TransformPoint(localBounds.max.x,localBounds.max.y,localBounds.min.z);
+         worldBoundsVertices[6]=transform.TransformPoint(localBounds.max.x,localBounds.max.y,localBounds.max.z);
+         worldBoundsVertices[7]=transform.TransformPoint(localBounds.min.x,localBounds.max.y,localBounds.max.z);
+        }
+        #if UNITY_EDITOR
+        void OnDrawGizmos(){
+         Logger.DrawRotatedBounds(worldBoundsVertices,Color.white);
+        }
+        #endif
     }
 }

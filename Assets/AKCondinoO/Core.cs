@@ -75,6 +75,20 @@ namespace AKCondinoO{
              UnityEngine.Debug.DrawLine(p3,p7,color,duration);
              UnityEngine.Debug.DrawLine(p4,p8,color,duration);
             }
+            internal static void DrawRotatedBounds(Vector3[]boundsVertices,Color color,float duration=0){
+             UnityEngine.Debug.DrawLine(boundsVertices[0],boundsVertices[1],color,duration);
+             UnityEngine.Debug.DrawLine(boundsVertices[1],boundsVertices[2],color,duration);
+             UnityEngine.Debug.DrawLine(boundsVertices[2],boundsVertices[3],color,duration);
+             UnityEngine.Debug.DrawLine(boundsVertices[3],boundsVertices[0],color,duration);
+             UnityEngine.Debug.DrawLine(boundsVertices[4],boundsVertices[5],color,duration);
+             UnityEngine.Debug.DrawLine(boundsVertices[5],boundsVertices[6],color,duration);
+             UnityEngine.Debug.DrawLine(boundsVertices[6],boundsVertices[7],color,duration);
+             UnityEngine.Debug.DrawLine(boundsVertices[7],boundsVertices[4],color,duration);
+             UnityEngine.Debug.DrawLine(boundsVertices[0],boundsVertices[4],color,duration);// sides
+             UnityEngine.Debug.DrawLine(boundsVertices[1],boundsVertices[5],color,duration);
+             UnityEngine.Debug.DrawLine(boundsVertices[2],boundsVertices[6],color,duration);
+             UnityEngine.Debug.DrawLine(boundsVertices[3],boundsVertices[7],color,duration);
+            }
         #endif
     }
     internal abstract class BackgroundContainer{

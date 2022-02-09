@@ -150,6 +150,26 @@ namespace AKCondinoO.Sims{
         internal void OnVoxelTerrainReady(VoxelTerrain cnk){
          cnkIdxToLoad.Add(cnk.cnkIdx.Value);
         }
+        internal void OnGameplayerLoadRequest(Gameplayer gameplayer){
+         //Logger.Debug("OnGameplayerLoadRequest");
+         for(Vector2Int iCoord=new Vector2Int(),cCoord1=new Vector2Int();iCoord.y<=instantiationDistance.y;iCoord.y++){for(cCoord1.y=-iCoord.y+gameplayer.cCoord.y;cCoord1.y<=iCoord.y+gameplayer.cCoord.y;cCoord1.y+=iCoord.y*2){
+         for(           iCoord.x=0                                      ;iCoord.x<=instantiationDistance.x;iCoord.x++){for(cCoord1.x=-iCoord.x+gameplayer.cCoord.x;cCoord1.x<=iCoord.x+gameplayer.cCoord.x;cCoord1.x+=iCoord.x*2){
+          if(Math.Abs(cCoord1.x)>=MaxcCoordx||
+             Math.Abs(cCoord1.y)>=MaxcCoordy){
+           goto _skip;
+          }
+          int cnkIdx1=GetcnkIdx(cCoord1.x,cCoord1.y);
+          cnkIdxToLoad.Add(cnkIdx1);
+          _skip:{}
+          if(iCoord.x==0){break;}
+         }}
+          if(iCoord.y==0){break;}
+         }}
+        }
+        internal bool anyPlayerBoundsChanged;
+        internal void OnGameplayerWorldBoundsChange(Gameplayer gameplayer){
+         anyPlayerBoundsChanged=true;
+        }
         [SerializeField]int       DEBUG_CREATE_SIM_OBJECT_AMOUNT;
         [SerializeField]Vector3   DEBUG_CREATE_SIM_OBJECT_ROTATION;
         [SerializeField]Vector3   DEBUG_CREATE_SIM_OBJECT_POSITION;
@@ -204,6 +224,9 @@ namespace AKCondinoO.Sims{
              if(DEBUG_LOAD_SIM_OBJECTS&&OnPersistentDataLoad()){
                 DEBUG_LOAD_SIM_OBJECTS=false;
                  OnPersistentDataLoading();
+             }else if(cnkIdxToLoad.Count>0&&OnPersistentDataLoad()){
+                      cnkIdxToLoad.Clear();
+                 OnPersistentDataLoading();
              }
          }
          foreach(var a in active){var sO=a.Value;
@@ -238,6 +261,7 @@ namespace AKCondinoO.Sims{
                 OnPendingPersistentDataPushedToFile();
              }
          }
+         anyPlayerBoundsChanged=false;
         }
         bool OnPendingPersistentDataPushToFile(){
          if(persistentDataSavingBG.IsCompleted(persistentDataSavingBGThread.IsRunning)){
@@ -260,6 +284,9 @@ namespace AKCondinoO.Sims{
          if(persistentDataLoadingBG.IsCompleted(persistentDataLoadingBGThread.IsRunning)&&persistentDataLoadingBG.output.dequeued){
           if(DEBUG_LOAD_SIM_OBJECTS){
            persistentDataLoadingBG.inputcnkIdx.Add(DEBUG_LOAD_SIM_OBJECTS_AT_CHUNK);
+          }
+          foreach(int cnkIdx in cnkIdxToLoad){
+           persistentDataLoadingBG.inputcnkIdx.Add(cnkIdx);
           }
           PersistentDataLoadingMultithreaded.Schedule(persistentDataLoadingBG);
           return true;
@@ -371,6 +398,7 @@ namespace AKCondinoO.Sims{
             sO.persistentData=persistentData;
             active.Add(id,sO);
             sO.id=id;
+            sO.OnActivated();
            }
            toSpawn.at.Clear();
            toSpawn.useSpecificIds.Clear();

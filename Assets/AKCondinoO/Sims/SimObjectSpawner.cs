@@ -319,6 +319,7 @@ namespace AKCondinoO.Sims{
         internal static readonly Queue<SpawnData>SpawnQueue=new Queue<SpawnData>();
         WaitUntil waitSpawnQueue;
         IEnumerator SpawnCoroutine(){
+         System.Diagnostics.Stopwatch stopwatch=new System.Diagnostics.Stopwatch();
          waitSpawnQueue=new WaitUntil(()=>{
           return SpawnQueue.Count>0;
          });

@@ -15,6 +15,7 @@ using static AKCondinoO.Sims.SimObject;
 using static AKCondinoO.Voxels.VoxelSystem;
 namespace AKCondinoO.Sims{
     internal class SimObjectSpawner:MonoBehaviour{internal static SimObjectSpawner Singleton;
+        [SerializeField]double instantiationMaxExecutionTime=.5d;
         internal readonly Dictionary<Type,GameObject>SimObjectPrefabs=new Dictionary<Type,GameObject>();
         internal static string idsFile;
         internal static string releasedIdsFile;
@@ -320,11 +321,19 @@ namespace AKCondinoO.Sims{
         WaitUntil waitSpawnQueue;
         IEnumerator SpawnCoroutine(){
          System.Diagnostics.Stopwatch stopwatch=new System.Diagnostics.Stopwatch();
+         bool LimitExecutionTime(){
+          if(stopwatch.Elapsed.TotalMilliseconds>instantiationMaxExecutionTime){
+           stopwatch.Restart();
+           return true;
+          }
+          return false;
+         }
          waitSpawnQueue=new WaitUntil(()=>{
           return SpawnQueue.Count>0;
          });
          Loop:{
           yield return waitSpawnQueue;
+          stopwatch.Restart();
           while(SpawnQueue.Count>0){SpawnData toSpawn=SpawnQueue.Dequeue();
            //Logger.Debug("toSpawn.at.Count:"+toSpawn.at.Count);
            foreach(var at in toSpawn.at){
@@ -399,6 +408,7 @@ namespace AKCondinoO.Sims{
             active.Add(id,sO);
             sO.id=id;
             sO.OnActivated();
+            if(LimitExecutionTime())yield return null;
            }
            toSpawn.at.Clear();
            toSpawn.useSpecificIds.Clear();

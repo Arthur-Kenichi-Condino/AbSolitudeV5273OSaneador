@@ -5,16 +5,36 @@ using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.AI;
+using static AKCondinoO.Voxels.VoxelSystem;
 namespace AKCondinoO{
     internal class Core:MonoBehaviour{internal static Core Singleton;
         internal static int ThreadCount;
         internal static readonly string saveLocation=Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData).Replace("\\","/")+"/AbSolitudeV5273OSaneador/";
         internal static string saveName="terra";
         internal static string savePath;
+        internal readonly NavMeshBuildSettings navMeshBuildSettings=new NavMeshBuildSettings{
+         agentTypeID=0,//  Humanoid agent
+         agentHeight=1.75f,
+         agentRadius=0.28125f,
+         agentClimb=0.75f,
+         agentSlope=60f,
+         overrideTileSize=true,
+                 tileSize=Width*Depth,
+         overrideVoxelSize=true,
+                 voxelSize=0.09375f,
+         minRegionArea=0.28125f,
+         debug=new NavMeshBuildDebugSettings{
+          flags=NavMeshBuildDebugFlags.None,
+         },
+         maxJobWorkers=0,
+        };
         void Awake(){if(Singleton==null){Singleton=this;}else{DestroyImmediate(this);return;}
+         GCSettings.LatencyMode=GCLatencyMode.Batch;
          savePath=string.Format("{0}{1}/",saveLocation,saveName);
          Directory.CreateDirectory(savePath);
          PhysHelper.SetLayerMasks();

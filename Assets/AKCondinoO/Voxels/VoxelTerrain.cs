@@ -13,6 +13,7 @@ using System.Text;
 using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.Rendering;
 using static AKCondinoO.Voxels.VoxelSystem;
 using static AKCondinoO.Voxels.VoxelSystem.TerrainEditingMultithreaded;
@@ -31,6 +32,8 @@ namespace AKCondinoO.Voxels{
         BakeJob bakeJob;
         JobHandle bakeJobHandle;
         internal MeshCollider meshCollider;
+        NavMeshBuildSource navMeshSource;
+        NavMeshBuildMarkup navMeshMarkup;
         void Awake(){
          mesh=new Mesh(){
           bounds=worldBounds,
@@ -41,6 +44,19 @@ namespace AKCondinoO.Voxels{
          filter=GetComponent<MeshFilter>();
          filter.mesh=mesh;
          meshCollider=GetComponent<MeshCollider>();
+         navMeshSource=new NavMeshBuildSource{
+          transform=transform.localToWorldMatrix,//  Deve ser atualizado sempre que o chunk se move
+          shape=NavMeshBuildSourceShape.Mesh,
+          sourceObject=mesh,
+          component=filter,
+          area=0,//  walkable
+         };
+         navMeshMarkup=new NavMeshBuildMarkup{
+          root=transform,
+          area=0,//  walkable
+          overrideArea=false,
+          ignoreFromBuild=false,
+         };
         }
         internal LinkedListNode<VoxelTerrain>expropriated;
         internal void OnInstantiated(){
@@ -193,6 +209,9 @@ namespace AKCondinoO.Voxels{
          }
          if(marchingCubesBG.IsCompleted(VoxelSystem.Singleton.marchingCubesBGThreads[0].IsRunning)){
           worldBounds.center=transform.position=new Vector3(cnkRgn.x,0,cnkRgn.y);
+          VoxelSystem.Singleton.navMeshSources.Remove(gameObject);
+          VoxelSystem.Singleton.navMeshMarkups.Remove(gameObject);
+          navMeshSource.transform=transform.localToWorldMatrix;
           marchingCubesBG.cCoord=cCoord;
           marchingCubesBG.cnkRgn=cnkRgn;
           marchingCubesBG.cnkIdx=cnkIdx.Value;
@@ -207,6 +226,8 @@ namespace AKCondinoO.Voxels{
         }
         bool OnPushingEditChanges(){
          if(marchingCubesBG.IsCompleted(VoxelSystem.Singleton.marchingCubesBGThreads[0].IsRunning)){
+          VoxelSystem.Singleton.navMeshSources.Remove(gameObject);
+          VoxelSystem.Singleton.navMeshMarkups.Remove(gameObject);
           MarchingCubesMultithreaded.Schedule(marchingCubesBG);
           return true;
          }
@@ -259,6 +280,8 @@ namespace AKCondinoO.Voxels{
           bakeJobHandle.Complete();
           meshCollider.sharedMesh=null;
           meshCollider.sharedMesh=mesh;
+          VoxelSystem.Singleton.navMeshSources[gameObject]=navMeshSource;
+          VoxelSystem.Singleton.navMeshMarkups[gameObject]=navMeshMarkup;
           return true;
          }
          return false;

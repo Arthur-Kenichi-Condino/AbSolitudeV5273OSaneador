@@ -11,6 +11,7 @@ using System.Text;
 using System.Threading;
 using Unity.Collections;
 using UnityEngine;
+using UnityEngine.AI;
 using static AKCondinoO.Voxels.VoxelSystem.TerrainEditingMultithreaded;
 using static AKCondinoO.Voxels.VoxelTerrain.MarchingCubesBackgroundContainer;
 namespace AKCondinoO.Voxels{
@@ -298,6 +299,8 @@ namespace AKCondinoO.Voxels{
         internal readonly VoxelTerrain.AddSimObjectsMultithreaded[]addSimObjectsBGThreads=new VoxelTerrain.AddSimObjectsMultithreaded[Environment.ProcessorCount];
         internal static string addedSimObjectsFile;
         internal static string editsFile;
+        internal readonly Dictionary<GameObject,NavMeshBuildSource>navMeshSources=new Dictionary<GameObject,NavMeshBuildSource>();
+        internal readonly Dictionary<GameObject,NavMeshBuildMarkup>navMeshMarkups=new Dictionary<GameObject,NavMeshBuildMarkup>();
         #region Awake
         void Awake(){if(Singleton==null){Singleton=this;}else{DestroyImmediate(this);return;}
          Core.Singleton.OnDestroyingCoreEvent+=OnDestroyingCoreEvent;

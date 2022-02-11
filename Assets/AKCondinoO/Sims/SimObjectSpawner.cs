@@ -220,7 +220,7 @@ namespace AKCondinoO.Sims{
          if(loadingPersistentData&&OnPersistentDataLoaded()){
             loadingPersistentData=false;
              //Logger.Debug("spawn loaded data");
-         }else{
+         }else if(!loadingPersistentData){
              if(DEBUG_LOAD_SIM_OBJECTS&&OnPersistentDataLoad()){
                 DEBUG_LOAD_SIM_OBJECTS=false;
                  OnPersistentDataLoading();
@@ -255,7 +255,7 @@ namespace AKCondinoO.Sims{
          }
          if(savingPersistentData&&OnPendingPersistentDataSaved()){
             savingPersistentData=false;
-         }else{
+         }else if(!savingPersistentData){
              if(DEBUG_SAVE_PENDING_PERSISTENT_DATA&&OnPendingPersistentDataPushToFile()){
                 DEBUG_SAVE_PENDING_PERSISTENT_DATA=false;
                 OnPendingPersistentDataPushedToFile();

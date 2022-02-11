@@ -3,6 +3,7 @@
 #endif
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime;
@@ -32,9 +33,10 @@ namespace AKCondinoO{
           debug=new NavMeshBuildDebugSettings{
            flags=NavMeshBuildDebugFlags.None,
           },
-          maxJobWorkers=0,
+          maxJobWorkers=4,
          },
         };
+        internal readonly List<Gameplayer>gameplayers=new List<Gameplayer>();
         void Awake(){if(Singleton==null){Singleton=this;}else{DestroyImmediate(this);return;}
          GCSettings.LatencyMode=GCLatencyMode.Batch;
          savePath=string.Format("{0}{1}/",saveLocation,saveName);

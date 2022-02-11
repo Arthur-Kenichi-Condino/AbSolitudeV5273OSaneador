@@ -99,15 +99,15 @@ namespace AKCondinoO.Voxels{
         internal void ManualUpdate(){
             if(addingSimObjects){
                 AddingSimObjectsSubroutine();
-            }else{
+            }else if(!addingSimObjects){
                 if(waitingBakeJob&&OnMeshBaked()){
                    waitingBakeJob=false;
                     OnAddingSimObjects();
-                }else{
+                }else if(!waitingBakeJob){
                     if(waitingMarchingCubes&&OnMeshDataSet()){
                        waitingMarchingCubes=false;
                         OnBakingMesh();
-                    }else{
+                    }else if(!waitingMarchingCubes){
                         if(pendingMovement&&OnApplyingMovement()){
                            pendingMovement=false;
                             OnMovementApplied();
@@ -209,8 +209,6 @@ namespace AKCondinoO.Voxels{
          }
          if(marchingCubesBG.IsCompleted(VoxelSystem.Singleton.marchingCubesBGThreads[0].IsRunning)){
           worldBounds.center=transform.position=new Vector3(cnkRgn.x,0,cnkRgn.y);
-          VoxelSystem.Singleton.navMeshSources.Remove(gameObject);
-          VoxelSystem.Singleton.navMeshMarkups.Remove(gameObject);
           navMeshSource.transform=transform.localToWorldMatrix;
           marchingCubesBG.cCoord=cCoord;
           marchingCubesBG.cnkRgn=cnkRgn;
@@ -226,8 +224,6 @@ namespace AKCondinoO.Voxels{
         }
         bool OnPushingEditChanges(){
          if(marchingCubesBG.IsCompleted(VoxelSystem.Singleton.marchingCubesBGThreads[0].IsRunning)){
-          VoxelSystem.Singleton.navMeshSources.Remove(gameObject);
-          VoxelSystem.Singleton.navMeshMarkups.Remove(gameObject);
           MarchingCubesMultithreaded.Schedule(marchingCubesBG);
           return true;
          }
@@ -280,8 +276,12 @@ namespace AKCondinoO.Voxels{
           bakeJobHandle.Complete();
           meshCollider.sharedMesh=null;
           meshCollider.sharedMesh=mesh;
-          VoxelSystem.Singleton.navMeshSources[gameObject]=navMeshSource;
-          VoxelSystem.Singleton.navMeshMarkups[gameObject]=navMeshMarkup;
+          VoxelSystem.Singleton.navMeshSources[gameObject.GetInstanceID()]=navMeshSource;
+          VoxelSystem.Singleton.navMeshMarkups[gameObject.GetInstanceID()]=navMeshMarkup;
+          VoxelSystem.Singleton.navMeshSourcesCollectionChanged=true;
+          for(int i=0;i<Core.Singleton.gameplayers.Count;++i){
+           Core.Singleton.gameplayers[i].OnVoxelTerrainBaked();
+          }
           return true;
          }
          return false;

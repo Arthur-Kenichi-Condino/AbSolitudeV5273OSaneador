@@ -1,3 +1,6 @@
+#if UNITY_EDITOR
+    #define ENABLE_DEBUG_LOG
+#endif
 using AKCondinoO.Voxels.Biomes;
 using paulbourke.MarchingCubes;
 using System;
@@ -299,8 +302,6 @@ namespace AKCondinoO.Voxels{
         internal readonly VoxelTerrain.AddSimObjectsMultithreaded[]addSimObjectsBGThreads=new VoxelTerrain.AddSimObjectsMultithreaded[Environment.ProcessorCount];
         internal static string addedSimObjectsFile;
         internal static string editsFile;
-        internal readonly Dictionary<GameObject,NavMeshBuildSource>navMeshSources=new Dictionary<GameObject,NavMeshBuildSource>();
-        internal readonly Dictionary<GameObject,NavMeshBuildMarkup>navMeshMarkups=new Dictionary<GameObject,NavMeshBuildMarkup>();
         #region Awake
         void Awake(){if(Singleton==null){Singleton=this;}else{DestroyImmediate(this);return;}
          Core.Singleton.OnDestroyingCoreEvent+=OnDestroyingCoreEvent;
@@ -345,6 +346,24 @@ namespace AKCondinoO.Voxels{
          terrainEditingBGThread.editsFileStreamReader.Dispose();
          biome.DisposeModules();
          if(Singleton==this){Singleton=null;}
+        }
+        internal readonly SortedDictionary<int,NavMeshBuildSource>navMeshSources=new SortedDictionary<int,NavMeshBuildSource>();
+        internal readonly SortedDictionary<int,NavMeshBuildMarkup>navMeshMarkups=new SortedDictionary<int,NavMeshBuildMarkup>();
+         readonly List<NavMeshBuildSource>sources=new List<NavMeshBuildSource>();
+         readonly List<NavMeshBuildMarkup>markups=new List<NavMeshBuildMarkup>();
+        internal bool navMeshSourcesCollectionChanged;
+        internal bool CollectNavMeshSources(out List<NavMeshBuildSource>sourcesCollected){
+         sourcesCollected=sources;
+         if(navMeshSourcesCollectionChanged){
+            navMeshSourcesCollectionChanged=false;
+          Logger.Debug("CollectNavMeshSources");
+          sources.Clear();
+          markups.Clear();
+          sources.AddRange(navMeshSources.Values);
+          markups.AddRange(navMeshMarkups.Values);
+          NavMeshBuilder.CollectSources(null,PhysHelper.NavMesh,NavMeshCollectGeometry.PhysicsColliders,0,markups,sources);
+         }
+         return true;
         }
         void EditTerrain(Vector3 at,TerrainEditingBackgroundContainer.EditMode mode,Vector3Int size,double density,MaterialId material,int smoothness){
          terrainEditingRequests.Enqueue(
@@ -403,7 +422,7 @@ namespace AKCondinoO.Voxels{
          }
          if(terrainEditingRequested&&OnTerrainEditingRequestsApplied()){
             terrainEditingRequested=false;
-         }else{
+         }else if(!terrainEditingRequested){
           if(terrainEditingRequests.Count>0&&OnTerrainEditingRequestsPush()){
            OnTerrainEditingRequestsPushed();
           }

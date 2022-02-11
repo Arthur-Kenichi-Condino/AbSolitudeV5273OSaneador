@@ -1,5 +1,10 @@
+#if UNITY_EDITOR
+    #define ENABLE_DEBUG_LOG
+#endif
 using AKCondinoO.Sims;
 using AKCondinoO.Voxels;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.AI;
 using static AKCondinoO.Voxels.VoxelSystem;
@@ -13,6 +18,7 @@ namespace AKCondinoO{
         //  Large  size agent: 2
         internal readonly NavMeshData[]navMeshData=new NavMeshData[3];
          internal readonly NavMeshDataInstance[]navMeshInstance=new NavMeshDataInstance[3];
+          internal readonly AsyncOperation[]navMeshAsyncOperation=new AsyncOperation[3];
         void Awake(){
          cCoord_Pre=cCoord=vecPosTocCoord(transform.position);
                     cnkRgn=cCoordTocnkRgn(cCoord);
@@ -30,6 +36,7 @@ namespace AKCondinoO{
            hideFlags=HideFlags.None,
           };
           navMeshInstance[agentType]=NavMesh.AddNavMeshData(navMeshData[agentType]);
+          Core.Singleton.gameplayers.Add(this);
          }
          worldBounds.center=new Vector3(cnkRgn.x,0,cnkRgn.y);
          VoxelSystem.Singleton.generationStarters.Add(this);
@@ -40,9 +47,17 @@ namespace AKCondinoO{
            NavMesh.RemoveNavMeshData(navMeshInstance[agentType]);
           }
          }
+         if(Core.Singleton!=null){
+          Core.Singleton.gameplayers.Remove(this);
+         }
+        }
+        internal void OnVoxelTerrainBaked(){
+         navMeshDirty=true;
         }
         [SerializeField]float reloadInterval=5f;
          float reloadTimer=0f;
+        bool navMeshDirty;
+        bool waitingNavMeshDataAsyncOperation;
         bool pendingCoordinatesUpdate=true;
         void Update(){
          transform.position=Camera.main.transform.position;
@@ -61,12 +76,39 @@ namespace AKCondinoO{
            SimObjectSpawner.Singleton.OnGameplayerWorldBoundsChange(this);
           }
          }
+         if(waitingNavMeshDataAsyncOperation&&OnNavMeshDataAsyncUpdated()){
+            waitingNavMeshDataAsyncOperation=false;
+         }else if(!waitingNavMeshDataAsyncOperation){
+             if(navMeshDirty&&OnNavMeshDataAsyncUpdate()){
+                navMeshDirty=false;
+                 OnNavMeshDataAsyncUpdating();
+             }
+         }
          if(reloadTimer>0f){
             reloadTimer-=Time.deltaTime;
          }else{
             reloadTimer=reloadInterval;
           SimObjectSpawner.Singleton.OnGameplayerLoadRequest(this);
          }
+        }
+        bool OnNavMeshDataAsyncUpdate(){
+         if(navMeshAsyncOperation.All(o=>o==null||o.isDone)&&VoxelSystem.Singleton.CollectNavMeshSources(out List<NavMeshBuildSource>sources)){
+          Logger.Debug("OnNavMeshDataAsyncUpdate start async operation");
+          for(int i=0;i<Core.Singleton.navMeshBuildSettings.Length;++i){
+           navMeshAsyncOperation[i]=NavMeshBuilder.UpdateNavMeshDataAsync(navMeshData[i],Core.Singleton.navMeshBuildSettings[i],sources,worldBounds);
+          }
+          return true;
+         }
+         return false;
+        }
+        void OnNavMeshDataAsyncUpdating(){
+         waitingNavMeshDataAsyncOperation=true;
+        }
+        bool OnNavMeshDataAsyncUpdated(){
+         if(navMeshAsyncOperation.All(o=>o==null||o.isDone)){
+          return true;
+         }
+         return false;
         }
         #if UNITY_EDITOR
         void OnDrawGizmos(){

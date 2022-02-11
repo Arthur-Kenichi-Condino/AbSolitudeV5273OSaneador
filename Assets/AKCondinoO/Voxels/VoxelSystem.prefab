@@ -43,7 +43,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 59a0fe864c1be7f4eb1730f1d7a9c4af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  marchingCubesExecutionCountLimit: 3
+  marchingCubesExecutionCountLimit: 6
   DEBUG_EDIT: 0
   DEBUG_EDIT_AT: {x: 0, y: 40, z: 0}
   DEBUG_EDIT_MODE: 0

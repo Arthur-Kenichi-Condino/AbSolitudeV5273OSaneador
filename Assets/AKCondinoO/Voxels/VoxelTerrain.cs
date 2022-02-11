@@ -179,8 +179,13 @@ namespace AKCondinoO.Voxels{
                          if(addingSimObjectsSettingGetGroundRays){
                              if(addSimObjectsBG.IsCompleted(VoxelSystem.Singleton.addSimObjectsBGThreads[0].IsRunning)){
                             addingSimObjectsSettingGetGroundRays=false;
-                                 doRaycastsHandle=RaycastCommand.ScheduleBatch(addSimObjectsBG.GetGroundRays,addSimObjectsBG.GetGroundHits,1,default(JobHandle));
-                                 addingSimObjectsDoingRaycasts=true;
+                                 if(addSimObjectsBG.GetGroundRays.Length<=0){
+                                     addingSimObjects=false;
+                                     SimObjectSpawner.Singleton.OnVoxelTerrainReady(this);
+                                 }else{
+                                     doRaycastsHandle=RaycastCommand.ScheduleBatch(addSimObjectsBG.GetGroundRays,addSimObjectsBG.GetGroundHits,1,default(JobHandle));
+                                     addingSimObjectsDoingRaycasts=true;
+                                 }
                              }
                          }else{
                              if(addingSimObjectsSetGetGroundRays){

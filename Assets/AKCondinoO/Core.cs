@@ -33,7 +33,7 @@ namespace AKCondinoO{
           debug=new NavMeshBuildDebugSettings{
            flags=NavMeshBuildDebugFlags.None,
           },
-          maxJobWorkers=8,
+          maxJobWorkers=6,
          },
         };
         internal readonly List<Gameplayer>gameplayers=new List<Gameplayer>();

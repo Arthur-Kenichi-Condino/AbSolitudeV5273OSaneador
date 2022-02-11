@@ -295,7 +295,7 @@ namespace AKCondinoO.Voxels{
           }
          }
         }
-        [SerializeField]internal int marchingCubesExecutionCountLimit=3;
+        [SerializeField]internal int marchingCubesExecutionCountLimit=6;
         internal static readonly Biome biome=new Biome();
         internal VoxelTerrain[]terrain;
         internal readonly VoxelTerrain.MarchingCubesMultithreaded[]marchingCubesBGThreads=new VoxelTerrain.MarchingCubesMultithreaded[Environment.ProcessorCount];

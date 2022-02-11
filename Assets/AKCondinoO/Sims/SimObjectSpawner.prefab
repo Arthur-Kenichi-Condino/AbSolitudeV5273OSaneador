@@ -43,3 +43,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 28ecbcf23563e0040b419806cbbad203, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  instantiationMaxExecutionTime: 2
+  DEBUG_CREATE_SIM_OBJECT_AMOUNT: 100
+  DEBUG_CREATE_SIM_OBJECT_ROTATION: {x: 0, y: 0, z: 0}
+  DEBUG_CREATE_SIM_OBJECT_POSITION: {x: 0, y: 0, z: 0}
+  DEBUG_CREATE_SIM_OBJECT_SCALE: {x: 1, y: 1, z: 1}
+  DEBUG_CREATE_SIM_OBJECT: {fileID: 0}
+  DEBUG_POOL_ALL_SIM_OBJECTS: 0
+  DEBUG_UNPLACE_ALL_SIM_OBJECTS: 0
+  DEBUG_SAVE_PENDING_PERSISTENT_DATA: 0
+  DEBUG_LOAD_SIM_OBJECTS_AT_CHUNK: 0
+  DEBUG_LOAD_SIM_OBJECTS: 0
+  persistentDataCacheTimeToLive: 10

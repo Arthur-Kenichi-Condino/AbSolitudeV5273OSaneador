@@ -15,7 +15,7 @@ using static AKCondinoO.Sims.SimObject;
 using static AKCondinoO.Voxels.VoxelSystem;
 namespace AKCondinoO.Sims{
     internal class SimObjectSpawner:MonoBehaviour{internal static SimObjectSpawner Singleton;
-        [SerializeField]double instantiationMaxExecutionTime=.5d;
+        [SerializeField]double instantiationMaxExecutionTime=2.0d;
         internal readonly Dictionary<Type,GameObject>SimObjectPrefabs=new Dictionary<Type,GameObject>();
         internal static string idsFile;
         internal static string releasedIdsFile;
@@ -337,7 +337,7 @@ namespace AKCondinoO.Sims{
           while(SpawnQueue.Count>0){SpawnData toSpawn=SpawnQueue.Dequeue();
            //Logger.Debug("toSpawn.at.Count:"+toSpawn.at.Count);
            foreach(var at in toSpawn.at){
-            while(savingPersistentData)yield return null;
+            //while(savingPersistentData)yield return null;
             Type simType=at.type;
             ulong number;
             (Type simType,ulong number)id;

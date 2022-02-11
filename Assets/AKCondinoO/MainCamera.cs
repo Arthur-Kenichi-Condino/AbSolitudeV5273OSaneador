@@ -6,6 +6,8 @@ using static AKCondinoO.Voxels.VoxelSystem;
 namespace AKCondinoO{
     internal class MainCamera:MonoBehaviour{internal static MainCamera Singleton;
         void Awake(){if(Singleton==null){Singleton=this;}else{DestroyImmediate(this);return;}
+         QualitySettings.vSyncCount=0;
+         Application.targetFrameRate=300;
          Camera.main.transparencySortMode=TransparencySortMode.Perspective;
          tgtRot=tgtRot_Pre=transform.eulerAngles;
          tgtPos=tgtPos_Pre=transform.position;
@@ -27,8 +29,8 @@ namespace AKCondinoO{
             float tgtPosLerpSpeed=25f;
              Vector3 tgtPosLerpA,tgtPosLerpB;
               Vector3 inputMoveSpeed;
-               [SerializeField]Vector3 MoveAcceleration=new Vector3(.01f,.01f,.01f);
-                [SerializeField]Vector3 MaxMoveSpeed=new Vector3(.1f,.1f,.1f);
+               [SerializeField]Vector3 MoveAcceleration=new Vector3(.02f,.02f,.02f);
+                [SerializeField]Vector3 MaxMoveSpeed=new Vector3(.2f,.2f,.2f);
         // Update is called once per frame
         void Update(){
          if(!(bool)Enabled.PAUSE[0]){
@@ -75,13 +77,13 @@ namespace AKCondinoO{
            if(!(bool)Enabled.RIGHT[0]&&!(bool)Enabled.LEFT[0]){inputMoveSpeed.x=0;}
             if( inputMoveSpeed.x>MaxMoveSpeed.x){inputMoveSpeed.x= MaxMoveSpeed.x;}
             if(-inputMoveSpeed.x>MaxMoveSpeed.x){inputMoveSpeed.x=-MaxMoveSpeed.x;}
-          if(inputMoveSpeed.z!=0&&
-             inputMoveSpeed.x!=0){
-           inputMoveSpeed.z/=2f;
-           inputMoveSpeed.x/=2f;
-          }
           if(inputMoveSpeed!=Vector3.zero){
-           tgtPos+=transform.rotation*inputMoveSpeed;
+           if(inputMoveSpeed.z!=0&&
+              inputMoveSpeed.x!=0){
+            tgtPos+=transform.rotation*(inputMoveSpeed/2f);
+           }else{
+            tgtPos+=transform.rotation*inputMoveSpeed;
+           }
           }
           if(tgtPosLerpTime==0){
            if(tgtPos!=tgtPos_Pre){

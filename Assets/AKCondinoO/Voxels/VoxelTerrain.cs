@@ -57,6 +57,8 @@ namespace AKCondinoO.Voxels{
           overrideArea=false,
           ignoreFromBuild=false,
          };
+         VoxelSystem.Singleton.navMeshSources[gameObject.GetInstanceID()]=navMeshSource;
+         VoxelSystem.Singleton.navMeshMarkups[gameObject.GetInstanceID()]=navMeshMarkup;
         }
         internal LinkedListNode<VoxelTerrain>expropriated;
         internal void OnInstantiated(){

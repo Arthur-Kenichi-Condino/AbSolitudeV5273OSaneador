@@ -45,6 +45,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd6402e01d6ffa348b58e620af00dc4e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ViewRotationSmoothValue: 0.025
+  MoveAcceleration: {x: 0.02, y: 0.02, z: 0.02}
+  MaxMoveSpeed: {x: 0.2, y: 0.2, z: 0.2}
 --- !u!20 &2705374688646203861
 Camera:
   m_ObjectHideFlags: 0

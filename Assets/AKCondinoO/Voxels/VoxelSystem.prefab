@@ -43,4 +43,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 59a0fe864c1be7f4eb1730f1d7a9c4af, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  marchingCubesExecutionCountLimit: 3
+  DEBUG_EDIT: 0
+  DEBUG_EDIT_AT: {x: 0, y: 40, z: 0}
+  DEBUG_EDIT_MODE: 0
+  DEBUG_EDIT_SIZE: {x: 3, y: 3, z: 3}
+  DEBUG_EDIT_DENSITY: 100
+  DEBUG_EDIT_MATERIAL_ID: 2
+  DEBUG_EDIT_SMOOTHNESS: 5
   PrefabVoxelTerrain: {fileID: -9171711188812057666, guid: 4a9c0921c418ce1459eea70b1d135ef1, type: 3}

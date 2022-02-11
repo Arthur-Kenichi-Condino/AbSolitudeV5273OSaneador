@@ -7,10 +7,11 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using UnityEngine;
+using static AKCondinoO.Sims.SimObjectSpawner;
 using static AKCondinoO.Voxels.VoxelSystem;
 namespace AKCondinoO.Sims{
     internal class SimObject:MonoBehaviour{
-        internal readonly object synchronizer=new object();
+        internal readonly SimObjectSpawner.SimObjectSync synchronizer=new SimObjectSpawner.SimObjectSync();
         internal PersistentData persistentData;
         internal struct PersistentData{
          public Quaternion rotation;

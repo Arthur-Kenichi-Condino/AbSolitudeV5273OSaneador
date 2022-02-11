@@ -183,7 +183,7 @@ namespace AKCondinoO.Voxels{
                                      addingSimObjects=false;
                                      SimObjectSpawner.Singleton.OnVoxelTerrainReady(this);
                                  }else{
-                                     doRaycastsHandle=RaycastCommand.ScheduleBatch(addSimObjectsBG.GetGroundRays,addSimObjectsBG.GetGroundHits,1,default(JobHandle));
+                                     doRaycastsHandle=RaycastCommand.ScheduleBatch(addSimObjectsBG.GetGroundRays,addSimObjectsBG.GetGroundHits,16,default(JobHandle));
                                      addingSimObjectsDoingRaycasts=true;
                                  }
                              }

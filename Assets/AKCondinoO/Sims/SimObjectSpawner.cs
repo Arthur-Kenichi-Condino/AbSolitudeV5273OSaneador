@@ -15,7 +15,7 @@ using static AKCondinoO.Sims.SimObject;
 using static AKCondinoO.Voxels.VoxelSystem;
 namespace AKCondinoO.Sims{
     internal class SimObjectSpawner:MonoBehaviour{internal static SimObjectSpawner Singleton;
-        [SerializeField]double instantiationMaxExecutionTime=2.0d;
+        [SerializeField]double instantiationMaxExecutionTime=12.0d;
         internal readonly Dictionary<Type,GameObject>SimObjectPrefabs=new Dictionary<Type,GameObject>();
         internal static string idsFile;
         internal static string releasedIdsFile;
@@ -124,6 +124,12 @@ namespace AKCondinoO.Sims{
          if(Singleton==this){Singleton=null;}
         }
         void OnSavingPersistentData(bool exitSave){
+         foreach(var syn in simObjectSyncsPendingAddToSynchronization){
+          var sO=syn.Key;
+          simObjectSpawnSynchronization.Add(sO,sO.synchronizer);
+          sO.synchronizer.addedToSimObjectSpawnSynchronization=true;
+         }
+         simObjectSyncsPendingAddToSynchronization.Clear();
          if(exitSave){
           foreach(var kvp in persistentDataCache){var id=kvp.Key;var persistentData=kvp.Value;
            persistentDataSavingBG.data[id.simType].AddOrUpdate(id.number,persistentData,
@@ -134,6 +140,16 @@ namespace AKCondinoO.Sims{
           }
             persistentDataCache.Clear();
           persistentDataTimeToLive.Clear();
+         }
+         if(pendingPersistentDataSaveAddedSimObjects){
+            pendingPersistentDataSaveAddedSimObjects=false;
+          foreach(var kvp in persistentDataCache){var id=kvp.Key;var persistentData=kvp.Value;
+           persistentDataSavingBG.data[id.simType].AddOrUpdate(id.number,persistentData,
+            (key,oldValue)=>{
+             return persistentData;
+            }
+           );
+          }
          }
          foreach(var typeIdCount in ids){Type t=typeIdCount.Key;ulong idCount=typeIdCount.Value;
           persistentDataSavingBG.ids[t]=idCount;
@@ -159,7 +175,9 @@ namespace AKCondinoO.Sims{
            goto _skip;
           }
           int cnkIdx1=GetcnkIdx(cCoord1.x,cCoord1.y);
-          cnkIdxToLoad.Add(cnkIdx1);
+          if(VoxelSystem.Singleton.terrainActive.ContainsKey(cnkIdx1)){
+           cnkIdxToLoad.Add(cnkIdx1);
+          }
           _skip:{}
           if(iCoord.x==0){break;}
          }}
@@ -190,6 +208,7 @@ namespace AKCondinoO.Sims{
         readonly SpawnData spawnData=new SpawnData();
         readonly HashSet<int>cnkIdxToLoad=new HashSet<int>();
         bool savingPersistentData;
+        bool pendingPersistentDataSave;
         bool loadingPersistentData;
         void Update(){
          if(DEBUG_CREATE_SIM_OBJECT!=null){
@@ -251,6 +270,7 @@ namespace AKCondinoO.Sims{
            );
              persistentDataCache.Remove(id);
            persistentDataTimeToLive.Remove(id);
+             pendingPersistentDataSave=true;
           }
          }
          if(savingPersistentData&&OnPendingPersistentDataSaved()){
@@ -259,10 +279,14 @@ namespace AKCondinoO.Sims{
              if(DEBUG_SAVE_PENDING_PERSISTENT_DATA&&OnPendingPersistentDataPushToFile()){
                 DEBUG_SAVE_PENDING_PERSISTENT_DATA=false;
                 OnPendingPersistentDataPushedToFile();
+             }else if(pendingPersistentDataSave&&OnPendingPersistentDataPushToFile()){
+                      pendingPersistentDataSave=false;
+                OnPendingPersistentDataPushedToFile();
              }
          }
          anyPlayerBoundsChanged=false;
         }
+        bool pendingPersistentDataSaveAddedSimObjects;
         bool OnPendingPersistentDataPushToFile(){
          if(persistentDataSavingBG.IsCompleted(persistentDataSavingBGThread.IsRunning)){
           OnSavingPersistentData(exitSave:false);
@@ -286,7 +310,9 @@ namespace AKCondinoO.Sims{
            persistentDataLoadingBG.inputcnkIdx.Add(DEBUG_LOAD_SIM_OBJECTS_AT_CHUNK);
           }
           foreach(int cnkIdx in cnkIdxToLoad){
-           persistentDataLoadingBG.inputcnkIdx.Add(cnkIdx);
+           if(VoxelSystem.Singleton.terrainActive.ContainsKey(cnkIdx)){
+            persistentDataLoadingBG.inputcnkIdx.Add(cnkIdx);
+           }
           }
           PersistentDataLoadingMultithreaded.Schedule(persistentDataLoadingBG);
           return true;
@@ -337,11 +363,12 @@ namespace AKCondinoO.Sims{
           while(SpawnQueue.Count>0){SpawnData toSpawn=SpawnQueue.Dequeue();
            //Logger.Debug("toSpawn.at.Count:"+toSpawn.at.Count);
            foreach(var at in toSpawn.at){
-            //while(savingPersistentData)yield return null;
             Type simType=at.type;
             ulong number;
             (Type simType,ulong number)id;
             if(at.id==null){
+                    pendingPersistentDataSave=true;
+             pendingPersistentDataSaveAddedSimObjects=true;
              number=0;
              if(!ids.ContainsKey(simType)){
               ids.Add(simType,1);
@@ -387,7 +414,7 @@ namespace AKCondinoO.Sims{
             }else{
              gO=Instantiate(SimObjectPrefabs[at.type],transform);
               sO=gO.GetComponent<SimObject>();
-             simObjectSpawnSynchronization.Add(sO,sO.synchronizer);
+             simObjectSyncsPendingAddToSynchronization.Add(sO,sO.synchronizer);
             }
             persistentDataTimeToLive.Remove(id);
             SimObject.PersistentData persistentData;
@@ -408,7 +435,7 @@ namespace AKCondinoO.Sims{
             active.Add(id,sO);
             sO.id=id;
             sO.OnActivated();
-            if(LimitExecutionTime())yield return null;
+            if(LimitExecutionTime())yield return null;//  no final para ignorar objetos repetidos
            }
            toSpawn.at.Clear();
            toSpawn.useSpecificIds.Clear();
@@ -437,7 +464,11 @@ namespace AKCondinoO.Sims{
          sO.pooled=pool[sO.id.Value.simType].AddLast(sO);
          sO.id=null;
         }
-        internal static readonly Dictionary<SimObject,object>simObjectSpawnSynchronization=new Dictionary<SimObject,object>();
+        internal class SimObjectSync:object{
+         internal bool addedToSimObjectSpawnSynchronization=false;
+        }
+        internal static readonly Dictionary<SimObject,SimObjectSync>simObjectSpawnSynchronization=new Dictionary<SimObject,SimObjectSync>();
+         readonly Dictionary<SimObject,SimObjectSync>simObjectSyncsPendingAddToSynchronization=new Dictionary<SimObject,SimObjectSync>();
         #region loading
         internal readonly PersistentDataLoadingBackgroundContainer persistentDataLoadingBG=new PersistentDataLoadingBackgroundContainer();
         internal class PersistentDataLoadingBackgroundContainer:BackgroundContainer{

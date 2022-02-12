@@ -11,6 +11,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using UnityEngine;
+using static AKCondinoO.Sims.SimActor;
 using static AKCondinoO.Sims.SimObject;
 using static AKCondinoO.Voxels.VoxelSystem;
 namespace AKCondinoO.Sims{
@@ -199,6 +200,10 @@ namespace AKCondinoO.Sims{
         [SerializeField]int       DEBUG_LOAD_SIM_OBJECTS_AT_CHUNK=0;
         [SerializeField]bool      DEBUG_LOAD_SIM_OBJECTS=false;
         internal readonly Dictionary<(Type simType,ulong number),SimObject.PersistentData>persistentDataCache=new Dictionary<(Type,ulong),SimObject.PersistentData>();
+        internal readonly Dictionary<(Type simType,ulong number),(SimActor.PersistentStatsTree statsTree,
+                                                                  SimActor.PersistentSkillTree skillTree,
+                                                                  SimActor.PersistentInventory inventory,
+                                                                  SimActor.PersistentEquipment equipment)>persistentSimActorDataCache=new Dictionary<(Type,ulong),(SimActor.PersistentStatsTree,SimActor.PersistentSkillTree,SimActor.PersistentInventory,SimActor.PersistentEquipment)>();
          readonly Dictionary<(Type simType,ulong number),float>persistentDataTimeToLive=new Dictionary<(Type,ulong),float>();
           readonly List<(Type simType,ulong number)>persistentDataTimeToLiveIds=new List<(Type,ulong)>();
         internal readonly Dictionary<Type,ulong>ids=new Dictionary<Type,ulong>();

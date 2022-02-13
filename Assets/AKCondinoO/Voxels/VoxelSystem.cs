@@ -23,6 +23,7 @@ namespace AKCondinoO.Voxels{
         internal const int MaxcCoordy=312;
         internal static Vector2Int instantiationDistance{get;}=new Vector2Int(12,12);
         internal static Vector2Int expropriationDistance{get;}=new Vector2Int(12,12);
+        internal static Vector2Int navDistance{get;}=new Vector2Int(5,5);
         internal const ushort Height=(256);
         internal const ushort Width=(16);
         internal const ushort Depth=(16);

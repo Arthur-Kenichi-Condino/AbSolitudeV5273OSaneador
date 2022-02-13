@@ -7,7 +7,7 @@ namespace AKCondinoO{
     internal class MainCamera:MonoBehaviour{internal static MainCamera Singleton;
         void Awake(){if(Singleton==null){Singleton=this;}else{DestroyImmediate(this);return;}
          QualitySettings.vSyncCount=0;
-         Application.targetFrameRate=300;
+         Application.targetFrameRate=200;
          Camera.main.transparencySortMode=TransparencySortMode.Perspective;
          tgtRot=tgtRot_Pre=transform.eulerAngles;
          tgtPos=tgtPos_Pre=transform.position;

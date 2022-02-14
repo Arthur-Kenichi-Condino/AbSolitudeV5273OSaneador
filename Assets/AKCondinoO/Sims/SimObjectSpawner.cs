@@ -355,6 +355,7 @@ namespace AKCondinoO.Sims{
          Loop:{
           yield return waitSpawnQueue;
           stopwatch.Restart();
+          bool anySpawn=false;
           while(SpawnQueue.Count>0){SpawnData toSpawn=SpawnQueue.Dequeue();
            //Logger.Debug("toSpawn.at.Count:"+toSpawn.at.Count);
            foreach(var at in toSpawn.at){
@@ -433,6 +434,7 @@ namespace AKCondinoO.Sims{
             active.Add(id,sO);
             sO.id=id;
             sO.OnActivated();
+            anySpawn=true;
             if(LimitExecutionTime())yield return null;//  no final para ignorar objetos repetidos
            }
            toSpawn.at.Clear();
@@ -440,8 +442,10 @@ namespace AKCondinoO.Sims{
            toSpawn.persistentData.Clear();
            toSpawn.dequeued=true;
           }
-          for(int i=0;i<Core.Singleton.gameplayers.Count;++i){
-           Core.Singleton.gameplayers[i].OnSimObjectsSpawned();
+          if(anySpawn){
+           for(int i=0;i<Core.Singleton.gameplayers.Count;++i){
+            Core.Singleton.gameplayers[i].OnSimObjectsSpawned();
+           }
           }
          }
          goto Loop;

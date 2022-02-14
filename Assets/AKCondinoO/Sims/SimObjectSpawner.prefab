@@ -44,7 +44,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   instantiationMaxExecutionTime: 12
-  DEBUG_CREATE_SIM_OBJECT_AMOUNT: 100
+  DEBUG_CREATE_SIM_OBJECT_AMOUNT: 1
   DEBUG_CREATE_SIM_OBJECT_ROTATION: {x: 0, y: 0, z: 0}
   DEBUG_CREATE_SIM_OBJECT_POSITION: {x: 0, y: 0, z: 0}
   DEBUG_CREATE_SIM_OBJECT_SCALE: {x: 1, y: 1, z: 1}

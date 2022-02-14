@@ -1,3 +1,6 @@
+#if UNITY_EDITOR
+    #define ENABLE_DEBUG_LOG
+#endif
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -29,6 +32,22 @@ namespace AKCondinoO.Sims{
          );
          base.Awake();
          navMeshAgent=GetComponent<NavMeshAgent>();
+         navMeshAgent.enabled=false;
+         Logger.Debug("navMeshAgent.agentTypeID:"+navMeshAgent.agentTypeID);
+        }
+        internal bool isUsingAI=true;
+        internal override void ManualUpdate(){
+         base.ManualUpdate();
+         if(!interactionsEnabled){
+          DisableNavMeshAgent();
+         }else{
+          if(!isUsingAI){
+           DisableNavMeshAgent();
+          }
+         }
+        }
+        internal void DisableNavMeshAgent(){
+         navMeshAgent.enabled=false;
         }
     }
 }

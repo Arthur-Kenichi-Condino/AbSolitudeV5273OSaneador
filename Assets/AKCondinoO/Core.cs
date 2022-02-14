@@ -18,46 +18,59 @@ namespace AKCondinoO{
         internal static readonly string saveLocation=Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData).Replace("\\","/")+"/AbSolitudeV5273OSaneador/";
         internal static string saveName="terra";
         internal static string savePath;
-        internal readonly NavMeshBuildSettings[]navMeshBuildSettings=new NavMeshBuildSettings[]{
-         new NavMeshBuildSettings{
-          agentTypeID=0,//  Medium size agent: 0
-          agentHeight=1.75f,
-          agentRadius=0.28125f,
-          agentClimb=0.75f,
-          agentSlope=60f,
-          overrideTileSize=true,
-                  tileSize=Width*Depth,
-          overrideVoxelSize=true,
-                  voxelSize=0.09375f,
-          minRegionArea=0.28125f,
-          debug=new NavMeshBuildDebugSettings{
-           flags=NavMeshBuildDebugFlags.None,
-          },
-          maxJobWorkers=1,
-         },
-         new NavMeshBuildSettings{
-          agentTypeID=1,//  Small size agent: 1
-          agentHeight=0.755f,
-          agentRadius=0.25f,
-          agentClimb=0.75f,
-          agentSlope=60f,
-          overrideTileSize=true,
-                  tileSize=Width*Depth,
-          overrideVoxelSize=true,
-                  voxelSize=0.25f/3f,
-          minRegionArea=0.25f,
-          debug=new NavMeshBuildDebugSettings{
-           flags=NavMeshBuildDebugFlags.None,
-          },
-          maxJobWorkers=1,
-         },
-        };
+        internal NavMeshBuildSettings[]navMeshBuildSettings;
+        //  [https://answers.unity.com/questions/1650130/change-agenttype-at-runtime.html]
+        internal static int?GetAgentTypeIDByName(string agentTypeName){
+         int count=NavMesh.GetSettingsCount();
+         for(int i=0;i<count;++i){
+          int id=NavMesh.GetSettingsByIndex(i).agentTypeID;
+          string name=NavMesh.GetSettingsNameFromID(id);
+          if(name==agentTypeName){
+           return id;
+          }
+         }
+         return null;
+        }
         internal readonly List<Gameplayer>gameplayers=new List<Gameplayer>();
         void Awake(){if(Singleton==null){Singleton=this;}else{DestroyImmediate(this);return;}
          GCSettings.LatencyMode=GCLatencyMode.Batch;
          savePath=string.Format("{0}{1}/",saveLocation,saveName);
          Directory.CreateDirectory(savePath);
          PhysHelper.SetLayerMasks();
+         navMeshBuildSettings=new NavMeshBuildSettings[]{
+          new NavMeshBuildSettings{
+           agentTypeID=GetAgentTypeIDByName("Medium").Value,//  Medium size agent
+           agentHeight=1.75f,
+           agentRadius=0.28125f,
+           agentClimb=0.75f,
+           agentSlope=60f,
+           overrideTileSize=true,
+                   tileSize=Width*Depth,
+           overrideVoxelSize=true,
+                   voxelSize=0.09375f,
+           minRegionArea=0.28125f,
+           debug=new NavMeshBuildDebugSettings{
+            flags=NavMeshBuildDebugFlags.None,
+           },
+           maxJobWorkers=1,
+          },
+          new NavMeshBuildSettings{
+           agentTypeID=GetAgentTypeIDByName("Small").Value,//  Small size agent
+           agentHeight=0.755f,
+           agentRadius=0.25f,
+           agentClimb=0.75f,
+           agentSlope=60f,
+           overrideTileSize=true,
+                   tileSize=Width*Depth,
+           overrideVoxelSize=true,
+                   voxelSize=0.25f/3f,
+           minRegionArea=0.25f,
+           debug=new NavMeshBuildDebugSettings{
+            flags=NavMeshBuildDebugFlags.None,
+           },
+           maxJobWorkers=1,
+          },
+         };
         }
         internal event EventHandler OnDestroyingCoreEvent;
         internal class OnDestroyingCoreEventArgs:EventArgs{

@@ -78,12 +78,7 @@ namespace AKCondinoO{
             if( inputMoveSpeed.x>MaxMoveSpeed.x){inputMoveSpeed.x= MaxMoveSpeed.x;}
             if(-inputMoveSpeed.x>MaxMoveSpeed.x){inputMoveSpeed.x=-MaxMoveSpeed.x;}
           if(inputMoveSpeed!=Vector3.zero){
-           if(inputMoveSpeed.z!=0&&
-              inputMoveSpeed.x!=0){
-            tgtPos+=transform.rotation*(inputMoveSpeed/2f);
-           }else{
-            tgtPos+=transform.rotation*inputMoveSpeed;
-           }
+           tgtPos+=transform.rotation*(inputMoveSpeed/Mathf.Max(1f,(inputMoveSpeed.z!=0?1f:0f)+(inputMoveSpeed.x!=0?1f:0f)+(inputMoveSpeed.y!=0?1f:0f)));
           }
           if(tgtPosLerpTime==0){
            if(tgtPos!=tgtPos_Pre){

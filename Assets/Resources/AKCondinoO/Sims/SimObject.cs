@@ -148,7 +148,9 @@ namespace AKCondinoO.Sims{
          }
          transform.hasChanged=false;
         }
+        internal bool interactionsEnabled;
         void DisableInteractions(){
+         interactionsEnabled=false;
          foreach(Collider collider in colliders){
           collider.enabled=false;
          }
@@ -157,6 +159,7 @@ namespace AKCondinoO.Sims{
          }
         }
         void EnableInteractions(){
+         interactionsEnabled=true;
          foreach(Collider collider in colliders){
           collider.enabled=true;
          }

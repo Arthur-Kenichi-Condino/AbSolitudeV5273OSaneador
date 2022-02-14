@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 1469581766164614760}
   - component: {fileID: 4722565926027698714}
   - component: {fileID: 8334377721422013520}
+  - component: {fileID: 7478588912387613411}
   m_Layer: 7
   m_Name: Volume
   m_TagString: SimObjectVolume
@@ -58,6 +59,22 @@ CapsuleCollider:
   m_Height: 13.07
   m_Direction: 1
   m_Center: {x: -0.04, y: 5.46, z: 0.06}
+--- !u!208 &7478588912387613411
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7630939014464031438}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Shape: 0
+  m_Extents: {x: 1.09, y: 6.535, z: 1.09}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 1
+  m_Center: {x: -0.04, y: 5.46, z: 0.06}
+  m_TimeToStationary: 0.5
 --- !u!1 &8304231286748276807
 GameObject:
   m_ObjectHideFlags: 0

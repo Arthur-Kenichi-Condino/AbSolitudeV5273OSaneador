@@ -440,6 +440,9 @@ namespace AKCondinoO.Sims{
            toSpawn.persistentData.Clear();
            toSpawn.dequeued=true;
           }
+          for(int i=0;i<Core.Singleton.gameplayers.Count;++i){
+           Core.Singleton.gameplayers[i].OnSimObjectsSpawned();
+          }
          }
          goto Loop;
         }

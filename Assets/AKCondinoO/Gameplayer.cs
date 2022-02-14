@@ -62,6 +62,9 @@ namespace AKCondinoO{
         internal void OnVoxelTerrainBaked(){
          navMeshDirty=true;
         }
+        internal void OnSimObjectsSpawned(){
+         navMeshDirty=true;
+        }
         [SerializeField]float reloadInterval=1f;
          float reloadTimer=0f;
         bool navMeshDirty;

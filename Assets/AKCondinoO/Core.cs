@@ -35,6 +35,22 @@ namespace AKCondinoO{
           },
           maxJobWorkers=4,
          },
+         new NavMeshBuildSettings{
+          agentTypeID=1,//  Small size agent: 1
+          agentHeight=0.755f,
+          agentRadius=0.25f,
+          agentClimb=0.75f,
+          agentSlope=60f,
+          overrideTileSize=true,
+                  tileSize=Width*Depth,
+          overrideVoxelSize=true,
+                  voxelSize=0.25f/3f,
+          minRegionArea=0.25f,
+          debug=new NavMeshBuildDebugSettings{
+           flags=NavMeshBuildDebugFlags.None,
+          },
+          maxJobWorkers=4,
+         },
         };
         internal readonly List<Gameplayer>gameplayers=new List<Gameplayer>();
         void Awake(){if(Singleton==null){Singleton=this;}else{DestroyImmediate(this);return;}

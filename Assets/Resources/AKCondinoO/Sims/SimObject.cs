@@ -116,6 +116,7 @@ namespace AKCondinoO.Sims{
         internal virtual void ManualUpdate(){
          //Logger.Debug("ManualUpdate():"+id);
          if(transform.hasChanged){
+          persistentData.UpdateData(this);
           TransformBoundsVertices();
          }
          if(spawnerUnplaceRequest){

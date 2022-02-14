@@ -9,6 +9,7 @@ ScriptsOnlyBuild:
     - AKCondinoO.Sims.SimObject
     - AKCondinoO.Sims.SimObjectSpawner
     - AKCondinoO.Sims.SimObjectVolume
+    - AKCondinoO.Sims.Vanilmirth
     - AKCondinoO.Voxels.VoxelSystem
     - AKCondinoO.Voxels.VoxelTerrain
     Unity.Rider.Editor.dll:
@@ -69,9 +70,13 @@ ScriptsOnlyBuild:
       Script: {instanceID: 4480}
     - Class: 114
       Script: {instanceID: 5164}
+    - Class: 114
+      Script: {instanceID: 5232}
     - Class: 115
       Script: {instanceID: 0}
     - Class: 136
+      Script: {instanceID: 0}
+    - Class: 143
       Script: {instanceID: 0}
     - Class: 157
       Script: {instanceID: 0}
@@ -79,7 +84,11 @@ ScriptsOnlyBuild:
       Script: {instanceID: 0}
     - Class: 193
       Script: {instanceID: 0}
+    - Class: 195
+      Script: {instanceID: 0}
     - Class: 196
+      Script: {instanceID: 0}
+    - Class: 208
       Script: {instanceID: 0}
   scriptHashData:
   - hash:

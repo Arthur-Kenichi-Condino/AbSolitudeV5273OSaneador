@@ -33,7 +33,7 @@ namespace AKCondinoO{
           debug=new NavMeshBuildDebugSettings{
            flags=NavMeshBuildDebugFlags.None,
           },
-          maxJobWorkers=4,
+          maxJobWorkers=1,
          },
          new NavMeshBuildSettings{
           agentTypeID=1,//  Small size agent: 1
@@ -49,7 +49,7 @@ namespace AKCondinoO{
           debug=new NavMeshBuildDebugSettings{
            flags=NavMeshBuildDebugFlags.None,
           },
-          maxJobWorkers=4,
+          maxJobWorkers=1,
          },
         };
         internal readonly List<Gameplayer>gameplayers=new List<Gameplayer>();

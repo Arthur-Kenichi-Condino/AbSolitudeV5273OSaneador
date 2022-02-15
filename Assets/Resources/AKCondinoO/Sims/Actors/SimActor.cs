@@ -96,5 +96,13 @@ namespace AKCondinoO.Sims.Actors{
           }
          }
         }
+        internal bool DestinationReached(){
+         if(!navMeshAgent.enabled){
+          //  fazer outras detecções se não estiver usando navMesh, como por exemplo ao voar
+          return true;//  para não travar outros comandos se navMesh estiver indisponível
+         }else{
+         }
+         return false;
+        }
     }
 }

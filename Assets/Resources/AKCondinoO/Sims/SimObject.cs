@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
     #define ENABLE_DEBUG_LOG
 #endif
+using AKCondinoO.Sims.Actors;
 using AKCondinoO.Voxels;
 using System;
 using System.Collections.Generic;
@@ -12,6 +13,7 @@ using static AKCondinoO.Voxels.VoxelSystem;
 namespace AKCondinoO.Sims{
     internal class SimObject:MonoBehaviour{
         internal readonly SimObjectSpawner.SimObjectSync synchronizer=new SimObjectSpawner.SimObjectSync();
+        internal(Type simType,ulong number)?id=null;
         internal PersistentData persistentData;
         internal struct PersistentData{
          public Quaternion rotation;
@@ -109,7 +111,6 @@ namespace AKCondinoO.Sims{
           persistentData.UpdateData(this);
          }
         }
-        internal(Type simType,ulong number)?id=null;
         bool isOverlapping;
         bool spawnerUnplaceRequest;
         bool spawnerPoolRequest;

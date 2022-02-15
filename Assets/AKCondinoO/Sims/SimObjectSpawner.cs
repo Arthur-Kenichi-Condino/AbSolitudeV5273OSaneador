@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
     #define ENABLE_DEBUG_LOG
 #endif
+using AKCondinoO.Sims.Actors;
 using AKCondinoO.Voxels;
 using System;
 using System.Collections;
@@ -11,7 +12,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using UnityEngine;
-using static AKCondinoO.Sims.SimActor;
+using static AKCondinoO.Sims.Actors.SimActor;
 using static AKCondinoO.Sims.SimObject;
 using static AKCondinoO.Voxels.VoxelSystem;
 namespace AKCondinoO.Sims{

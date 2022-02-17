@@ -21,6 +21,9 @@ namespace AKCondinoO.Sims.Actors{
         internal PersistentEquipment persistentEquipment;
         internal struct PersistentEquipment{
         }
+        internal PersistentAIMyState persistentAIMyState;
+        internal struct PersistentAIMyState{
+        }
         internal CharacterController characterController;
         internal NavMeshAgent navMeshAgent;
         internal NavMeshQueryFilter navMeshQueryFilter;
@@ -61,11 +64,15 @@ namespace AKCondinoO.Sims.Actors{
           }
          }
         }
-        public const int V_STATE=15;
+        public const int V_STATE            =15;
+        public const int V_PATHFINDING_STATE=16;
         public static int GetV(int V_,(Type simType,ulong number)id){
          if(SimObjectSpawner.Singleton.active.TryGetValue(id,out SimObject sO)&&(sO is SimActor sA)){
           if(V_==V_STATE){
            return(int)sA.MyState;
+          }
+          if(V_==V_PATHFINDING_STATE){
+           return(int)sA.MyPathfindingState;
           }
          }
          return -1;
@@ -73,8 +80,10 @@ namespace AKCondinoO.Sims.Actors{
         internal enum State:int{
          IDLE_ST=0,
         }
-        protected State MyState=State.IDLE_ST;
+        protected State            MyState           =State.IDLE_ST        ;
+        protected PathfindingState MyPathfindingState=PathfindingState.IDLE;
         internal virtual void AI(){
+         MyPathfindingState=DestinationReached();
          if(MyState==State.IDLE_ST){
           OnIDLE_ST();
          }
@@ -96,13 +105,36 @@ namespace AKCondinoO.Sims.Actors{
           }
          }
         }
-        internal bool DestinationReached(){
+        internal enum PathfindingState:int{
+         IDLE                  =0,
+         REACHED               =1,
+         PENDING               =2,
+         TRAVELING             =3,
+         TRAVELING_BUT_NO_SPEED=4,
+        }
+        internal PathfindingState DestinationReached(){
          if(!navMeshAgent.enabled){
-          //  fazer outras detecções se não estiver usando navMesh, como por exemplo ao voar
-          return true;//  para não travar outros comandos se navMesh estiver indisponível
+          //  TO DO: fazer outras detecções se não estiver usando navMesh, como por exemplo ao voar
+          return PathfindingState.IDLE;
          }else{
+          if(navMeshAgent.pathPending){
+           return PathfindingState.PENDING;
+          }
+          if(!navMeshAgent.hasPath){
+           return PathfindingState.IDLE;
+          }
+          if(navMeshAgent.remainingDistance==Mathf.Infinity||navMeshAgent.remainingDistance==float.NaN||navMeshAgent.remainingDistance<0){
+           return PathfindingState.IDLE;
+          }
+          if(navMeshAgent.remainingDistance>navMeshAgent.stoppingDistance){
+           if(Mathf.Approximately(navMeshAgent.velocity.sqrMagnitude,0f)){
+            return PathfindingState.TRAVELING_BUT_NO_SPEED;
+           }
+           return PathfindingState.TRAVELING;
+          }else{
+           return PathfindingState.REACHED;
+          }
          }
-         return false;
         }
     }
 }

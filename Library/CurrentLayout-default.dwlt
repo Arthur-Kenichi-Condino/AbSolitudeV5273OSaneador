@@ -148,7 +148,7 @@ MonoBehaviour:
   m_MinSize: {x: 634, y: 602}
   m_MaxSize: {x: 18004, y: 14042}
   vertical: 0
-  controlID: 99
+  controlID: 45
 --- !u!114 &7
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -173,7 +173,7 @@ MonoBehaviour:
   m_MinSize: {x: 634, y: 602}
   m_MaxSize: {x: 18004, y: 14042}
   vertical: 1
-  controlID: 100
+  controlID: 46
 --- !u!114 &8
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -199,7 +199,7 @@ MonoBehaviour:
   m_MinSize: {x: 579, y: 221}
   m_MaxSize: {x: 12004, y: 4021}
   vertical: 0
-  controlID: 50
+  controlID: 47
 --- !u!114 &9
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -308,7 +308,7 @@ MonoBehaviour:
   m_MinSize: {x: 634, y: 381}
   m_MaxSize: {x: 18004, y: 10021}
   vertical: 0
-  controlID: 101
+  controlID: 77
 --- !u!114 &13
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -413,7 +413,7 @@ MonoBehaviour:
     oldSplitSize: 0
   m_Recording: 0
   m_ActiveNativePlatformSupportModuleName: 
-  m_SelectedModuleIndex: 0
+  m_SelectedModuleIndex: -1
   m_Modules:
   - id: 0
   - id: 1
@@ -1284,9 +1284,9 @@ MonoBehaviour:
   m_PlayAudio: 0
   m_AudioPlay: 0
   m_Position:
-    m_Target: {x: -9.882523, y: 11.768478, z: 333.88608}
+    m_Target: {x: 1.3999999, y: 24.588701, z: 0}
     speed: 2
-    m_Value: {x: -9.882523, y: 11.768478, z: 333.88608}
+    m_Value: {x: 1.3999999, y: 24.588701, z: 0}
   m_RenderMode: 0
   m_CameraMode:
     drawMode: 0
@@ -1333,13 +1333,13 @@ MonoBehaviour:
     m_GridAxis: 1
     m_gridOpacity: 0.5
   m_Rotation:
-    m_Target: {x: 0.2894089, y: -0.7061905, z: 0.40762693, w: 0.50138676}
+    m_Target: {x: -0.18683946, y: 0.78443277, z: -0.28190362, w: -0.5199024}
     speed: 2
-    m_Value: {x: 0.28879556, y: -0.70693797, z: 0.40805835, w: 0.5003242}
+    m_Value: {x: -0.18683834, y: 0.7844281, z: -0.28190196, w: -0.5198993}
   m_Size:
-    m_Target: 108.27944
+    m_Target: 5.09325
     speed: 2
-    m_Value: 113.381615
+    m_Value: 5.09325
   m_Ortho:
     m_Target: 0
     speed: 2
@@ -1513,8 +1513,8 @@ MonoBehaviour:
     vZoomLockedByDefault: 0
     m_HBaseRangeMin: -512
     m_HBaseRangeMax: 512
-    m_VBaseRangeMin: -258
-    m_VBaseRangeMax: 258
+    m_VBaseRangeMin: -268.5
+    m_VBaseRangeMax: 268.5
     m_HAllowExceedBaseRangeMin: 1
     m_HAllowExceedBaseRangeMax: 1
     m_VAllowExceedBaseRangeMin: 1
@@ -1531,11 +1531,11 @@ MonoBehaviour:
     m_DrawArea:
       serializedVersion: 2
       x: 0
-      y: 21
+      y: 0
       width: 1024
-      height: 516
+      height: 537
     m_Scale: {x: 1, y: 1}
-    m_Translation: {x: 512, y: 258}
+    m_Translation: {x: 512, y: 268.5}
     m_MarginLeft: 0
     m_MarginRight: 0
     m_MarginTop: 0
@@ -1543,9 +1543,9 @@ MonoBehaviour:
     m_LastShownAreaInsideMargins:
       serializedVersion: 2
       x: -512
-      y: -258
+      y: -268.5
       width: 1024
-      height: 516
+      height: 537
     m_MinimalGUI: 1
   m_defaultScale: 1
   m_LastWindowPixelSize: {x: 1024, y: 537}
@@ -1648,9 +1648,9 @@ MonoBehaviour:
   m_SceneHierarchy:
     m_TreeViewState:
       scrollPos: {x: 0, y: 0}
-      m_SelectedIDs: 
+      m_SelectedIDs: 6c110000
       m_LastClickedID: 0
-      m_ExpandedIDs: da13fefffc13feffc614feffb20affffd40affff9e0bffff720cffff940cffff5e0dffff947fffffb67fffff8080ffff4281ffff6481ffff2e82ffffe882ffff0a83ffffd483ffff9284ffffb484ffff7e85ffff2c86ffff4e86ffff1887ffff84f9ffffa6f9ffff70faffff70fbffff
+      m_ExpandedIDs: 6cfbffff
       m_RenameOverlay:
         m_UserAcceptedRename: 0
         m_Name: 
@@ -1666,7 +1666,7 @@ MonoBehaviour:
         m_IsRenaming: 0
         m_OriginalEventType: 11
         m_IsRenamingFilename: 0
-        m_ClientGUIView: {fileID: 9}
+        m_ClientGUIView: {fileID: 10}
       m_SearchString: 
     m_ExpandedScenes: []
     m_CurrenRootInstanceID: 0
@@ -1737,22 +1737,22 @@ MonoBehaviour:
     m_SkipHidden: 0
     m_SearchArea: 1
     m_Folders:
-    - Assets/AKCondinoO/Sims
+    - Assets/Resources/AKCondinoO/Sims/Actors/Homunculi
     m_Globs: []
     m_OriginalText: 
   m_ViewMode: 1
   m_StartGridSize: 16
   m_LastFolders:
-  - Assets/AKCondinoO/Sims
+  - Assets/Resources/AKCondinoO/Sims/Actors/Homunculi
   m_LastFoldersGridSize: 16
   m_LastProjectPath: E:\Users\Arthur\GitHub\AbSolitudeV5273OSaneador
   m_LockTracker:
     m_IsLocked: 0
   m_FolderTreeState:
     scrollPos: {x: 0, y: 0}
-    m_SelectedIDs: d6410000
-    m_LastClickedID: 16854
-    m_ExpandedIDs: 00000000b6410000b8410000ba410000bc410000be410000c0410000c2410000c4410000c641000000ca9a3b
+    m_SelectedIDs: ca410000
+    m_LastClickedID: 16842
+    m_ExpandedIDs: 00000000b8410000ba410000bc410000be410000c0410000c2410000c4410000c6410000c8410000ca410000cc410000ce41000000ca9a3b
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
@@ -1780,7 +1780,7 @@ MonoBehaviour:
     scrollPos: {x: 0, y: 0}
     m_SelectedIDs: 
     m_LastClickedID: 0
-    m_ExpandedIDs: 00000000b6410000b8410000ba410000bc410000be410000c0410000c2410000c4410000c6410000
+    m_ExpandedIDs: 00000000b8410000ba410000bc410000be410000c0410000c2410000c4410000c6410000c8410000ca410000cc410000ce410000
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
@@ -1807,7 +1807,7 @@ MonoBehaviour:
   m_ListAreaState:
     m_SelectedInstanceIDs: 
     m_LastClickedInstanceID: 0
-    m_HadKeyboardFocusLastEvent: 0
+    m_HadKeyboardFocusLastEvent: 1
     m_ExpandedInstanceIDs: c62300009a9100003ca300000000000004430000d0430000
     m_RenameOverlay:
       m_UserAcceptedRename: 0

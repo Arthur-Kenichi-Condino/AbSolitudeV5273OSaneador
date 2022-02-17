@@ -80,12 +80,14 @@ namespace AKCondinoO.Sims{
           Logger.Debug("added Prefab:"+sO.name);
           string saveFile=string.Format("{0}{1}{2}",Core.savePath,t,".txt");
           //Logger.Debug("saveFile:"+saveFile);
-          persistentDataSavingBG.data[t]=new ConcurrentDictionary<ulong,PersistentData>();
+          persistentDataSavingBG.data[t]=new ConcurrentDictionary<ulong,SimObject.PersistentData>();
+          persistentDataSavingBG.simActorData[t]=new ConcurrentDictionary<ulong,(PersistentStatsTree,PersistentSkillTree,PersistentInventory,PersistentEquipment,PersistentAIMyState)>();
           FileStream fileStream;
           persistentDataSavingBGThread.fileStream[t]=fileStream=new FileStream(saveFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
           persistentDataSavingBGThread.fileStreamWriter[t]=new StreamWriter(fileStream);
           persistentDataSavingBGThread.fileStreamReader[t]=new StreamReader(fileStream);
-           persistentDataLoadingBG.data[t]=new ConcurrentDictionary<ulong,PersistentData>();
+           persistentDataLoadingBG.data[t]=new ConcurrentDictionary<ulong,SimObject.PersistentData>();
+           persistentDataLoadingBG.simActorData[t]=new ConcurrentDictionary<ulong,(PersistentStatsTree,PersistentSkillTree,PersistentInventory,PersistentEquipment,PersistentAIMyState)>();
            FileStream loadFileStream;
            persistentDataLoadingBGThread.fileStream[t]=loadFileStream=new FileStream(saveFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
            persistentDataLoadingBGThread.fileStreamReader[t]=new StreamReader(loadFileStream);
@@ -136,14 +138,21 @@ namespace AKCondinoO.Sims{
          if(exitSave){
           foreach(var kvp in persistentDataCache){var id=kvp.Key;var persistentData=kvp.Value;
            persistentDataSavingBG.data[id.simType][id.number]=persistentData;
+           if(persistentSimActorDataCache.TryGetValue(id,out var persistentSimActorData)){
+            persistentDataSavingBG.simActorData[id.simType][id.number]=persistentSimActorData;
+           }
           }
-            persistentDataCache.Clear();
-          persistentDataTimeToLive.Clear();
+                  persistentDataCache.Clear();
+          persistentSimActorDataCache.Clear();
+          persistentDataTimeToLive   .Clear();
          }
          if(pendingPersistentDataSaveAddedSimObjects){
             pendingPersistentDataSaveAddedSimObjects=false;
           foreach(var kvp in persistentDataCache){var id=kvp.Key;var persistentData=kvp.Value;
            persistentDataSavingBG.data[id.simType][id.number]=persistentData;
+           if(persistentSimActorDataCache.TryGetValue(id,out var persistentSimActorData)){
+            persistentDataSavingBG.simActorData[id.simType][id.number]=persistentSimActorData;
+           }
           }
          }
          foreach(var typeIdCount in ids){Type t=typeIdCount.Key;ulong idCount=typeIdCount.Value;
@@ -197,7 +206,8 @@ namespace AKCondinoO.Sims{
         internal readonly Dictionary<(Type simType,ulong number),(SimActor.PersistentStatsTree statsTree,
                                                                   SimActor.PersistentSkillTree skillTree,
                                                                   SimActor.PersistentInventory inventory,
-                                                                  SimActor.PersistentEquipment equipment)>persistentSimActorDataCache=new Dictionary<(Type,ulong),(SimActor.PersistentStatsTree,SimActor.PersistentSkillTree,SimActor.PersistentInventory,SimActor.PersistentEquipment)>();
+                                                                  SimActor.PersistentEquipment equipment,
+                                                                  SimActor.PersistentAIMyState AIMyState)>persistentSimActorDataCache=new Dictionary<(Type,ulong),(SimActor.PersistentStatsTree,SimActor.PersistentSkillTree,SimActor.PersistentInventory,SimActor.PersistentEquipment,SimActor.PersistentAIMyState)>();
          readonly Dictionary<(Type simType,ulong number),float>persistentDataTimeToLive=new Dictionary<(Type,ulong),float>();
           readonly List<(Type simType,ulong number)>persistentDataTimeToLiveIds=new List<(Type,ulong)>();
         internal readonly Dictionary<Type,ulong>ids=new Dictionary<Type,ulong>();
@@ -263,10 +273,15 @@ namespace AKCondinoO.Sims{
           if((persistentDataTimeToLive[id]-=Time.deltaTime)<0f){
            SimObject.PersistentData persistentData=persistentDataCache[id];
            persistentDataSavingBG.data[id.simType][id.number]=persistentData;
-             persistentDataCache.Remove(id);
-           persistentDataTimeToLive.Remove(id);
+           if(persistentSimActorDataCache.TryGetValue(id,out var persistentSimActorData)){
+            persistentDataSavingBG.simActorData[id.simType][id.number]=persistentSimActorData;
+           }
+                   persistentDataCache.Remove(id);
+           persistentSimActorDataCache.Remove(id);
+           persistentDataTimeToLive   .Remove(id);
              pendingPersistentDataSave=true;
-           persistentDataLoadingBG.data[id.simType].TryRemove(id.number,out _);
+           persistentDataLoadingBG.data        [id.simType].TryRemove(id.number,out _);
+           persistentDataLoadingBG.simActorData[id.simType].TryRemove(id.number,out _);
           }
          }
          if(savingPersistentData&&OnPendingPersistentDataSaved()){
@@ -428,6 +443,23 @@ namespace AKCondinoO.Sims{
              persistentData.localScale=gO.transform.localScale;
             }
             persistentDataCache[id]=persistentData;
+            if(sO is SimActor sA){
+             (SimActor.PersistentStatsTree persistentStatsTree,
+              SimActor.PersistentSkillTree persistentSkillTree,
+              SimActor.PersistentInventory persistentInventory,
+              SimActor.PersistentEquipment persistentEquipment,
+              SimActor.PersistentAIMyState persistentAIMyState)persistentSimActorData;
+             //  TO DO: usar valores carregados de arquivo ou inicializar valores no sA.
+             persistentSimActorData=(sA.persistentStatsTree,
+                                     sA.persistentSkillTree,
+                                     sA.persistentInventory,
+                                     sA.persistentEquipment,
+                                     sA.persistentAIMyState);
+             persistentSimActorDataCache[id]=persistentSimActorData;
+             if(added){
+              persistentDataLoadingBG.simActorData[id.simType][id.number]=persistentSimActorData;
+             }
+            }
             if(added){
              persistentDataLoadingBG.data[id.simType][id.number]=persistentData;
             }
@@ -481,6 +513,11 @@ namespace AKCondinoO.Sims{
          internal readonly Dictionary<Type,ulong>ids=new Dictionary<Type,ulong>();
          internal readonly Dictionary<Type,List<ulong>>releasedIds=new Dictionary<Type,List<ulong>>();
          internal readonly Dictionary<Type,ConcurrentDictionary<ulong,SimObject.PersistentData>>data=new Dictionary<Type,ConcurrentDictionary<ulong,SimObject.PersistentData>>();
+         internal readonly Dictionary<Type,ConcurrentDictionary<ulong,(SimActor.PersistentStatsTree statsTree,
+                                                                       SimActor.PersistentSkillTree skillTree,
+                                                                       SimActor.PersistentInventory inventory,
+                                                                       SimActor.PersistentEquipment equipment,
+                                                                       SimActor.PersistentAIMyState AIMyState)>>simActorData=new Dictionary<Type,ConcurrentDictionary<ulong,(SimActor.PersistentStatsTree,SimActor.PersistentSkillTree,SimActor.PersistentInventory,SimActor.PersistentEquipment,SimActor.PersistentAIMyState)>>();
         }
         internal PersistentDataSavingMultithreaded persistentDataSavingBGThread;
         internal class PersistentDataSavingMultithreaded:BaseMultithreaded<PersistentDataSavingBackgroundContainer>{
@@ -570,6 +607,13 @@ namespace AKCondinoO.Sims{
               }
              }
              //Logger.Debug("will now save all of type:"+t+", still pending PersistentData to save for later:"+persistentDataToSave.Count);
+             if(container.simActorData.TryGetValue(t,out var persistentSimActorDataToSave)){
+              //  TO DO: fazer a leitura e gravação do arquivo aqui: testar id e remover, o que sobrar salvar no final.
+              foreach(var idPersistentSimActorDataPair in persistentSimActorDataToSave){ulong id=idPersistentSimActorDataPair.Key;
+               if(persistentSimActorDataToSave.TryRemove(id,out var persistentSimActorData)){
+               }
+              }
+             }
             }
             foreach(var kvp1 in idPersistentDataListBycnkIdxByType){Type t=kvp1.Key;var idPersistentDataListBycnkIdx=kvp1.Value;
              processedcnkIdx.Clear();
@@ -650,6 +694,11 @@ namespace AKCondinoO.Sims{
          internal readonly HashSet<int>inputcnkIdx=new HashSet<int>();
          internal readonly SpawnData output=new SpawnData();
          internal readonly Dictionary<Type,ConcurrentDictionary<ulong,SimObject.PersistentData>>data=new Dictionary<Type,ConcurrentDictionary<ulong,SimObject.PersistentData>>();
+         internal readonly Dictionary<Type,ConcurrentDictionary<ulong,(SimActor.PersistentStatsTree statsTree,
+                                                                       SimActor.PersistentSkillTree skillTree,
+                                                                       SimActor.PersistentInventory inventory,
+                                                                       SimActor.PersistentEquipment equipment,
+                                                                       SimActor.PersistentAIMyState AIMyState)>>simActorData=new Dictionary<Type,ConcurrentDictionary<ulong,(SimActor.PersistentStatsTree,SimActor.PersistentSkillTree,SimActor.PersistentInventory,SimActor.PersistentEquipment,SimActor.PersistentAIMyState)>>();
         }
         internal PersistentDataLoadingMultithreaded persistentDataLoadingBGThread;
         internal class PersistentDataLoadingMultithreaded:BaseMultithreaded<PersistentDataLoadingBackgroundContainer>{

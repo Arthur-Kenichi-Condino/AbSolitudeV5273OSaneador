@@ -128,45 +128,6 @@ namespace AKCondinoO.Sims{
          }
          if(Singleton==this){Singleton=null;}
         }
-        void OnSavingPersistentData(bool exitSave){
-         foreach(var syn in simObjectSyncsPendingAddToSynchronization){
-          var sO=syn.Key;
-          simObjectSpawnSynchronization.Add(sO,sO.synchronizer);
-          sO.synchronizer.addedToSimObjectSpawnSynchronization=true;
-         }
-         simObjectSyncsPendingAddToSynchronization.Clear();
-         if(exitSave){
-          foreach(var kvp in persistentDataCache){var id=kvp.Key;var persistentData=kvp.Value;
-           persistentDataSavingBG.data[id.simType][id.number]=persistentData;
-           if(persistentSimActorDataCache.TryGetValue(id,out var persistentSimActorData)){
-            persistentDataSavingBG.simActorData[id.simType][id.number]=persistentSimActorData;
-           }
-          }
-                  persistentDataCache.Clear();
-          persistentSimActorDataCache.Clear();
-          persistentDataTimeToLive   .Clear();
-         }
-         if(pendingPersistentDataSaveAddedSimObjects){
-            pendingPersistentDataSaveAddedSimObjects=false;
-          foreach(var kvp in persistentDataCache){var id=kvp.Key;var persistentData=kvp.Value;
-           persistentDataSavingBG.data[id.simType][id.number]=persistentData;
-           if(persistentSimActorDataCache.TryGetValue(id,out var persistentSimActorData)){
-            persistentDataSavingBG.simActorData[id.simType][id.number]=persistentSimActorData;
-           }
-          }
-         }
-         foreach(var typeIdCount in ids){Type t=typeIdCount.Key;ulong idCount=typeIdCount.Value;
-          persistentDataSavingBG.ids[t]=idCount;
-         }
-         foreach(var kvp in releasedIds){
-          if(persistentDataSavingBG.releasedIds.TryGetValue(kvp.Key,out List<ulong>list)){
-           list.Clear();
-           list.AddRange(kvp.Value);
-          }else{
-           persistentDataSavingBG.releasedIds.Add(kvp.Key,new List<ulong>(kvp.Value));
-          }
-         }
-        }
         internal void OnVoxelTerrainReady(VoxelTerrain cnk){
          cnkIdxToLoad.Add(cnk.cnkIdx.Value);
         }
@@ -266,6 +227,21 @@ namespace AKCondinoO.Sims{
          while(DespawnReleaseIdQueue.Count>0){var toDespawnReleaseId=DespawnReleaseIdQueue.Dequeue();
           OnDeactivateReleaseId(toDespawnReleaseId);
          }
+         OnPersistentDataTimeToLiveUpdate();
+         if(savingPersistentData&&OnPendingPersistentDataSaved()){
+            savingPersistentData=false;
+         }else if(!savingPersistentData){
+             if(DEBUG_SAVE_PENDING_PERSISTENT_DATA&&OnPendingPersistentDataPushToFile()){
+                DEBUG_SAVE_PENDING_PERSISTENT_DATA=false;
+                OnPendingPersistentDataPushedToFile();
+             }else if(pendingPersistentDataSave&&OnPendingPersistentDataPushToFile()){
+                      pendingPersistentDataSave=false;
+                OnPendingPersistentDataPushedToFile();
+             }
+         }
+         anyPlayerBoundsChanged=false;
+        }
+        void OnPersistentDataTimeToLiveUpdate(){
          persistentDataTimeToLiveIds.Clear();
          persistentDataTimeToLiveIds.AddRange(persistentDataTimeToLive.Keys);
          for(int i=0;i<persistentDataTimeToLiveIds.Count;++i){
@@ -284,18 +260,45 @@ namespace AKCondinoO.Sims{
            persistentDataLoadingBG.simActorData[id.simType].TryRemove(id.number,out _);
           }
          }
-         if(savingPersistentData&&OnPendingPersistentDataSaved()){
-            savingPersistentData=false;
-         }else if(!savingPersistentData){
-             if(DEBUG_SAVE_PENDING_PERSISTENT_DATA&&OnPendingPersistentDataPushToFile()){
-                DEBUG_SAVE_PENDING_PERSISTENT_DATA=false;
-                OnPendingPersistentDataPushedToFile();
-             }else if(pendingPersistentDataSave&&OnPendingPersistentDataPushToFile()){
-                      pendingPersistentDataSave=false;
-                OnPendingPersistentDataPushedToFile();
-             }
+        }
+        void OnSavingPersistentData(bool exitSave){
+         foreach(var syn in simObjectSyncsPendingAddToSynchronization){
+          var sO=syn.Key;
+          simObjectSpawnSynchronization.Add(sO,sO.synchronizer);
+          sO.synchronizer.addedToSimObjectSpawnSynchronization=true;
          }
-         anyPlayerBoundsChanged=false;
+         simObjectSyncsPendingAddToSynchronization.Clear();
+         if(exitSave){
+          foreach(var kvp in persistentDataCache){var id=kvp.Key;var persistentData=kvp.Value;
+           persistentDataSavingBG.data[id.simType][id.number]=persistentData;
+           if(persistentSimActorDataCache.TryGetValue(id,out var persistentSimActorData)){
+            persistentDataSavingBG.simActorData[id.simType][id.number]=persistentSimActorData;
+           }
+          }
+                  persistentDataCache.Clear();
+          persistentSimActorDataCache.Clear();
+          persistentDataTimeToLive   .Clear();
+         }
+         if(pendingPersistentDataSaveAddedSimObjects){
+            pendingPersistentDataSaveAddedSimObjects=false;
+          foreach(var kvp in persistentDataCache){var id=kvp.Key;var persistentData=kvp.Value;
+           persistentDataSavingBG.data[id.simType][id.number]=persistentData;
+           if(persistentSimActorDataCache.TryGetValue(id,out var persistentSimActorData)){
+            persistentDataSavingBG.simActorData[id.simType][id.number]=persistentSimActorData;
+           }
+          }
+         }
+         foreach(var typeIdCount in ids){Type t=typeIdCount.Key;ulong idCount=typeIdCount.Value;
+          persistentDataSavingBG.ids[t]=idCount;
+         }
+         foreach(var kvp in releasedIds){
+          if(persistentDataSavingBG.releasedIds.TryGetValue(kvp.Key,out List<ulong>list)){
+           list.Clear();
+           list.AddRange(kvp.Value);
+          }else{
+           persistentDataSavingBG.releasedIds.Add(kvp.Key,new List<ulong>(kvp.Value));
+          }
+         }
         }
         bool pendingPersistentDataSaveAddedSimObjects;
         bool OnPendingPersistentDataPushToFile(){

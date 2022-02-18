@@ -257,7 +257,6 @@ namespace AKCondinoO.Sims{
            persistentDataTimeToLive   .Remove(id);
              pendingPersistentDataSave=true;
            persistentDataLoadingBG.data        [id.simType].TryRemove(id.number,out _);
-           persistentDataLoadingBG.simActorData[id.simType].TryRemove(id.number,out _);
           }
          }
         }
@@ -718,6 +717,13 @@ namespace AKCondinoO.Sims{
              int cnkIdx=GetcnkIdx(cCoord.x,cCoord.y);
              if(container.inputcnkIdx.Contains(cnkIdx)||container.specificIdsToLoad.Count>0){
               Load(outputId,ref persistentData);
+             }
+            }
+           }
+           foreach(var typePersistentSimActorDataToLoadPair in container.simActorData){Type t=typePersistentSimActorDataToLoadPair.Key;var persistentSimActorDataToLoad=typePersistentSimActorDataToLoadPair.Value;
+            foreach(var idPersistentSimActorDataPair in persistentSimActorDataToLoad){ulong id=idPersistentSimActorDataPair.Key;
+             if(!container.data[t].ContainsKey(id)){
+              container.simActorData[t].TryRemove(id,out _);
              }
             }
            }

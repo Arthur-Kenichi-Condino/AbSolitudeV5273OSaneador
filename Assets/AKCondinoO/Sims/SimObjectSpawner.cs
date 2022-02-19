@@ -680,6 +680,9 @@ namespace AKCondinoO.Sims{
              fileStreamWriter.Flush();
             }
             //Logger.Debug("after saving idPersistentDataListPool.Count:"+idPersistentDataListPool.Count);
+            foreach(var kvp in idListByType){Type t=kvp.Key;var idList=kvp.Value;
+             
+            }
            }catch{
             throw;
            }finally{

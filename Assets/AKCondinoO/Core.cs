@@ -45,14 +45,14 @@ namespace AKCondinoO{
            agentClimb=0.75f,
            agentSlope=60f,
            overrideTileSize=true,
-                   tileSize=Width*Depth,
+                   tileSize=32,
            overrideVoxelSize=true,
-                   voxelSize=0.09375f,
+                   voxelSize=0.5f/3f,
            minRegionArea=0.28125f,
            debug=new NavMeshBuildDebugSettings{
             flags=NavMeshBuildDebugFlags.None,
            },
-           maxJobWorkers=1,
+           maxJobWorkers=4,
           },
           new NavMeshBuildSettings{
            agentTypeID=GetAgentTypeIDByName("Small").Value,//  Small size agent
@@ -61,14 +61,14 @@ namespace AKCondinoO{
            agentClimb=0.75f,
            agentSlope=60f,
            overrideTileSize=true,
-                   tileSize=Width*Depth,
+                   tileSize=32,
            overrideVoxelSize=true,
-                   voxelSize=0.25f/3f,
+                   voxelSize=0.5f/3f,
            minRegionArea=0.25f,
            debug=new NavMeshBuildDebugSettings{
             flags=NavMeshBuildDebugFlags.None,
            },
-           maxJobWorkers=1,
+           maxJobWorkers=4,
           },
          };
         }

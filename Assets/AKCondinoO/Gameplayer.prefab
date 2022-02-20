@@ -44,3 +44,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   reloadInterval: 1
+  navMeshDataAsyncUpdateInterval: 1
+  navBoundsChangesMaxCountForNavMeshDataAsyncUpdateForciblyStart: 4

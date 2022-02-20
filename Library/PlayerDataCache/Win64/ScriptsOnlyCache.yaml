@@ -5,11 +5,11 @@ ScriptsOnlyBuild:
     - AKCondinoO.Gameplayer
     - AKCondinoO.InputHandler
     - AKCondinoO.MainCamera
-    - AKCondinoO.Sims.Pinus_elliottii_1
+    - AKCondinoO.Sims.Actors.Homunculi.Vanilmirth
     - AKCondinoO.Sims.SimObject
     - AKCondinoO.Sims.SimObjectSpawner
     - AKCondinoO.Sims.SimObjectVolume
-    - AKCondinoO.Sims.Vanilmirth
+    - AKCondinoO.Sims.Trees.Pinus_elliottii_1
     - AKCondinoO.Voxels.VoxelSystem
     - AKCondinoO.Voxels.VoxelTerrain
     Unity.Rider.Editor.dll:
@@ -67,11 +67,11 @@ ScriptsOnlyBuild:
     - Class: 114
       Script: {instanceID: 4104}
     - Class: 114
-      Script: {instanceID: 4480}
+      Script: {instanceID: 4482}
     - Class: 114
-      Script: {instanceID: 5164}
+      Script: {instanceID: 5166}
     - Class: 114
-      Script: {instanceID: 5232}
+      Script: {instanceID: 5234}
     - Class: 115
       Script: {instanceID: 0}
     - Class: 136
@@ -413,7 +413,7 @@ ScriptsOnlyBuild:
       serializedVersion: 2
       Hash: 71bb6a6b6c8f052f948db64c7dd3ca4f
     assemblyName: Assembly-CSharp.dll
-    namespaceName: AKCondinoO.Sims
+    namespaceName: AKCondinoO.Sims.Trees
     className: SimTree
   - hash:
       serializedVersion: 2
@@ -507,6 +507,12 @@ ScriptsOnlyBuild:
     className: PhysicsRaycaster
   - hash:
       serializedVersion: 2
+      Hash: 71bb6a6b6c8f052f948db64c7dd3ca4f
+    assemblyName: Assembly-CSharp.dll
+    namespaceName: AKCondinoO.Sims.Actors.Homunculi
+    className: Homunculus
+  - hash:
+      serializedVersion: 2
       Hash: 0fb27be807aa299702f28ad0bcad1f46
     assemblyName: Unity.Timeline.dll
     namespaceName: UnityEngine.Timeline
@@ -515,7 +521,7 @@ ScriptsOnlyBuild:
       serializedVersion: 2
       Hash: 71bb6a6b6c8f052f948db64c7dd3ca4f
     assemblyName: Assembly-CSharp.dll
-    namespaceName: AKCondinoO.Sims
+    namespaceName: AKCondinoO.Sims.Trees
     className: Pinus_elliottii_1
   - hash:
       serializedVersion: 2
@@ -533,7 +539,7 @@ ScriptsOnlyBuild:
       serializedVersion: 2
       Hash: 71bb6a6b6c8f052f948db64c7dd3ca4f
     assemblyName: Assembly-CSharp.dll
-    namespaceName: AKCondinoO.Sims
+    namespaceName: AKCondinoO.Sims.Actors
     className: SimActor
   - hash:
       serializedVersion: 2
@@ -569,7 +575,7 @@ ScriptsOnlyBuild:
       serializedVersion: 2
       Hash: 71bb6a6b6c8f052f948db64c7dd3ca4f
     assemblyName: Assembly-CSharp.dll
-    namespaceName: AKCondinoO.Sims
+    namespaceName: AKCondinoO.Sims.Actors.Homunculi
     className: Vanilmirth
   - hash:
       serializedVersion: 2

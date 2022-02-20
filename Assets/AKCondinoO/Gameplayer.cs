@@ -71,6 +71,11 @@ namespace AKCondinoO{
         bool waitingNavMeshDataAsyncOperation;
         bool pendingCoordinatesUpdate=true;
         void Update(){
+         if(!MainCamera.Singleton.isMoving){
+          if(navMeshDataAsyncUpdateTimer>0.0f){
+             navMeshDataAsyncUpdateTimer-=Time.deltaTime;
+          }
+         }
          transform.position=Camera.main.transform.position;
          if(transform.hasChanged){
             transform.hasChanged=false;
@@ -85,6 +90,7 @@ namespace AKCondinoO{
            VoxelSystem.Singleton.generationStarters.Add(this);
            navBounds.center=worldBounds.center=new Vector3(cnkRgn.x,0,cnkRgn.y);
            SimObjectSpawner.Singleton.OnGameplayerWorldBoundsChange(this);
+           navBoundsChangesCountForNavMeshDataAsyncUpdateForciblyStart++;
           }
          }
          if(waitingNavMeshDataAsyncOperation&&OnNavMeshDataAsyncUpdated()){
@@ -102,9 +108,15 @@ namespace AKCondinoO{
           SimObjectSpawner.Singleton.OnGameplayerLoadRequest(this);
          }
         }
+        [SerializeField]internal float navMeshDataAsyncUpdateInterval=1.0f;
+        float navMeshDataAsyncUpdateTimer=0.0f;
+        [SerializeField]int navBoundsChangesMaxCountForNavMeshDataAsyncUpdateForciblyStart=4;
+        int navBoundsChangesCountForNavMeshDataAsyncUpdateForciblyStart=0;
         readonly List<NavMeshBuildSource>sources=new List<NavMeshBuildSource>();
         bool OnNavMeshDataAsyncUpdate(){
-         if(navMeshAsyncOperation.All(o=>o==null||o.isDone)&&VoxelSystem.Singleton.CollectNavMeshSources(out List<NavMeshBuildSource>sourcesCollected)){
+         if((navMeshDataAsyncUpdateTimer<=0.0f||navBoundsChangesCountForNavMeshDataAsyncUpdateForciblyStart>=navBoundsChangesMaxCountForNavMeshDataAsyncUpdateForciblyStart)&&navMeshAsyncOperation.All(o=>o==null||o.isDone)&&VoxelSystem.Singleton.CollectNavMeshSources(out List<NavMeshBuildSource>sourcesCollected)){
+             navMeshDataAsyncUpdateTimer=navMeshDataAsyncUpdateInterval;
+                                                navBoundsChangesCountForNavMeshDataAsyncUpdateForciblyStart=0;
           Logger.Debug("OnNavMeshDataAsyncUpdate start async operation");
           sources.Clear();
           for(int i=0;i<sourcesCollected.Count;++i){

@@ -13,6 +13,7 @@ namespace AKCondinoO{
          tgtPos=tgtPos_Pre=transform.position;
          safePosition=transform.position;
         }
+        internal bool isRotating;
         Vector3 safePosition;
         Vector3 tgtRot,tgtRot_Pre;
          float tgtRotLerpTime;
@@ -22,6 +23,7 @@ namespace AKCondinoO{
              Quaternion tgtRotLerpA,tgtRotLerpB;
               Vector3 inputViewRotationEuler;
                [SerializeField]float ViewRotationSmoothValue=.025f;
+        internal bool isMoving;
         Vector3 tgtPos,tgtPos_Pre;
          float tgtPosLerpTime;
           float tgtPosLerpMaxTime=.05f;
@@ -53,7 +55,9 @@ namespace AKCondinoO{
           }else{
            tgtRotLerpTime+=Time.deltaTime;
           }
+          isRotating=false;
           if(tgtRotLerpTime!=0){
+           isRotating=true;
            tgtRotLerpVal+=tgtRotLerpSpeed*Time.deltaTime;
            if(tgtRotLerpVal>=1){
             tgtRotLerpVal=1;
@@ -91,7 +95,9 @@ namespace AKCondinoO{
           }else{
            tgtPosLerpTime+=Time.deltaTime;
           }
+          isMoving=false;
           if(tgtPosLerpTime!=0){
+           isMoving=true;
            tgtPosLerpVal+=tgtPosLerpSpeed*Time.deltaTime;
            if(tgtPosLerpVal>=1){
             tgtPosLerpVal=1;
@@ -107,7 +113,9 @@ namespace AKCondinoO{
           }
          }else{
           inputViewRotationEuler=Vector3.zero;
+          isRotating=false;
           inputMoveSpeed=Vector3.zero;
+          isMoving=false;
          }
          Vector2Int cCoord=vecPosTocCoord(transform.position);
          if(Math.Abs(cCoord.x)>=MaxcCoordx||

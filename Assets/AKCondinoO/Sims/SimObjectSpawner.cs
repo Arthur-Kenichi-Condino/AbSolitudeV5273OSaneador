@@ -241,25 +241,6 @@ namespace AKCondinoO.Sims{
          }
          anyPlayerBoundsChanged=false;
         }
-        void OnPersistentDataTimeToLiveUpdate(){
-         persistentDataTimeToLiveIds.Clear();
-         persistentDataTimeToLiveIds.AddRange(persistentDataTimeToLive.Keys);
-         for(int i=0;i<persistentDataTimeToLiveIds.Count;++i){
-          var id=persistentDataTimeToLiveIds[i];
-          if((persistentDataTimeToLive[id]-=Time.deltaTime)<0f){
-           SimObject.PersistentData persistentData=persistentDataCache[id];
-           persistentDataSavingBG.data[id.simType][id.number]=persistentData;
-           if(persistentSimActorDataCache.TryGetValue(id,out var persistentSimActorData)){
-            persistentDataSavingBG.simActorData[id.simType][id.number]=persistentSimActorData;
-           }
-                   persistentDataCache.Remove(id);
-           persistentSimActorDataCache.Remove(id);
-           persistentDataTimeToLive   .Remove(id);
-             pendingPersistentDataSave=true;
-           persistentDataLoadingBG.data        [id.simType].TryRemove(id.number,out _);
-          }
-         }
-        }
         void OnSavingPersistentData(bool exitSave){
          foreach(var syn in simObjectSyncsPendingAddToSynchronization){
           var sO=syn.Key;
@@ -296,6 +277,27 @@ namespace AKCondinoO.Sims{
            list.AddRange(kvp.Value);
           }else{
            persistentDataSavingBG.releasedIds.Add(kvp.Key,new List<ulong>(kvp.Value));
+          }
+         }
+        }
+        void OnPersistentDataTimeToLiveUpdate(){
+         if(persistentDataSavingBG.IsCompleted(persistentDataSavingBGThread.IsRunning)){
+          persistentDataTimeToLiveIds.Clear();
+          persistentDataTimeToLiveIds.AddRange(persistentDataTimeToLive.Keys);
+          for(int i=0;i<persistentDataTimeToLiveIds.Count;++i){
+           var id=persistentDataTimeToLiveIds[i];
+           if((persistentDataTimeToLive[id]-=Time.deltaTime)<0f){
+            SimObject.PersistentData persistentData=persistentDataCache[id];
+            persistentDataSavingBG.data[id.simType][id.number]=persistentData;
+            if(persistentSimActorDataCache.TryGetValue(id,out var persistentSimActorData)){
+             persistentDataSavingBG.simActorData[id.simType][id.number]=persistentSimActorData;
+            }
+                    persistentDataCache.Remove(id);
+            persistentSimActorDataCache.Remove(id);
+            persistentDataTimeToLive   .Remove(id);
+              pendingPersistentDataSave=true;
+            persistentDataLoadingBG.data        [id.simType].TryRemove(id.number,out _);
+           }
           }
          }
         }
@@ -613,9 +615,13 @@ namespace AKCondinoO.Sims{
               //  TO DO: fazer a leitura e gravação do arquivo aqui: testar id e remover, o que sobrar salvar no final.
               foreach(var idPersistentSimActorDataPair in persistentSimActorDataToSave){ulong id=idPersistentSimActorDataPair.Key;
                if(persistentSimActorDataToSave.TryRemove(id,out var persistentSimActorData)){
+
                }
               }
              }
+            }
+            foreach(var kvp in idListByType){Type t=kvp.Key;var idList=kvp.Value;
+             
             }
             foreach(var kvp1 in idPersistentDataListBycnkIdxByType){Type t=kvp1.Key;var idPersistentDataListBycnkIdx=kvp1.Value;
              processedcnkIdx.Clear();
@@ -680,9 +686,6 @@ namespace AKCondinoO.Sims{
              fileStreamWriter.Flush();
             }
             //Logger.Debug("after saving idPersistentDataListPool.Count:"+idPersistentDataListPool.Count);
-            foreach(var kvp in idListByType){Type t=kvp.Key;var idList=kvp.Value;
-             
-            }
            }catch{
             throw;
            }finally{

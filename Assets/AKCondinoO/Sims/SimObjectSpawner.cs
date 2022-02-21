@@ -80,17 +80,22 @@ namespace AKCondinoO.Sims{
           Logger.Debug("added Prefab:"+sO.name);
           string saveFile=string.Format("{0}{1}{2}",Core.savePath,t,".txt");
           //Logger.Debug("saveFile:"+saveFile);
-          persistentDataSavingBG.data[t]=new ConcurrentDictionary<ulong,SimObject.PersistentData>();
-          persistentDataSavingBG.simActorData[t]=new ConcurrentDictionary<ulong,(PersistentStatsTree,PersistentSkillTree,PersistentInventory,PersistentEquipment,PersistentAIMyState)>();
+          persistentDataSavingBG.gameDataToSerializeToFile[t]=new ConcurrentDictionary<ulong,SimObject.PersistentData>();
           FileStream fileStream;
           persistentDataSavingBGThread.fileStream[t]=fileStream=new FileStream(saveFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
           persistentDataSavingBGThread.fileStreamWriter[t]=new StreamWriter(fileStream);
           persistentDataSavingBGThread.fileStreamReader[t]=new StreamReader(fileStream);
-           persistentDataLoadingBG.data[t]=new ConcurrentDictionary<ulong,SimObject.PersistentData>();
-           persistentDataLoadingBG.simActorData[t]=new ConcurrentDictionary<ulong,(PersistentStatsTree,PersistentSkillTree,PersistentInventory,PersistentEquipment,PersistentAIMyState)>();
+           persistentDataLoadingBG.gameDataNotInFileKeepCached[t]=new ConcurrentDictionary<ulong,SimObject.PersistentData>();
            FileStream loadFileStream;
            persistentDataLoadingBGThread.fileStream[t]=loadFileStream=new FileStream(saveFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
            persistentDataLoadingBGThread.fileStreamReader[t]=new StreamReader(loadFileStream);
+          if(sO is SimActor){
+           persistentDataSavingBG.gameSimActorDataToSerializeToFile[t]=new ConcurrentDictionary<ulong,(PersistentStatsTree,PersistentSkillTree,PersistentInventory,PersistentEquipment,PersistentAIMyState)>();
+           FileStream simActorDataFileStream;
+           persistentDataSavingBGThread.simActorDataFileStream[t]=new FileStream[5];
+           //persistentDataSavingBGThread.simActorDataFileStream[t][0]=new FileStream();
+            persistentDataLoadingBG.gameSimActorDataNotInFileKeepCached[t]=new ConcurrentDictionary<ulong,(PersistentStatsTree,PersistentSkillTree,PersistentInventory,PersistentEquipment,PersistentAIMyState)>();
+          }
          }
          SpawnQueue.Clear();
          StartCoroutine(SpawnCoroutine());
@@ -250,22 +255,22 @@ namespace AKCondinoO.Sims{
          simObjectSyncsPendingAddToSynchronization.Clear();
          if(exitSave){
           foreach(var kvp in persistentDataCache){var id=kvp.Key;var persistentData=kvp.Value;
-           persistentDataSavingBG.data[id.simType][id.number]=persistentData;
            if(persistentSimActorDataCache.TryGetValue(id,out var persistentSimActorData)){
-            persistentDataSavingBG.simActorData[id.simType][id.number]=persistentSimActorData;
+            persistentDataSavingBG.gameSimActorDataToSerializeToFile[id.simType][id.number]=persistentSimActorData;
            }
+           persistentDataSavingBG.gameDataToSerializeToFile[id.simType][id.number]=persistentData;
           }
                   persistentDataCache.Clear();
           persistentSimActorDataCache.Clear();
-          persistentDataTimeToLive   .Clear();
+          persistentDataTimeToLive.Clear();
          }
-         if(pendingPersistentDataSaveAddedSimObjects){
-            pendingPersistentDataSaveAddedSimObjects=false;
+         if(saveAll){
+            saveAll=false;
           foreach(var kvp in persistentDataCache){var id=kvp.Key;var persistentData=kvp.Value;
-           persistentDataSavingBG.data[id.simType][id.number]=persistentData;
            if(persistentSimActorDataCache.TryGetValue(id,out var persistentSimActorData)){
-            persistentDataSavingBG.simActorData[id.simType][id.number]=persistentSimActorData;
+            persistentDataSavingBG.gameSimActorDataToSerializeToFile[id.simType][id.number]=persistentSimActorData;
            }
+           persistentDataSavingBG.gameDataToSerializeToFile[id.simType][id.number]=persistentData;
           }
          }
          foreach(var typeIdCount in ids){Type t=typeIdCount.Key;ulong idCount=typeIdCount.Value;
@@ -288,20 +293,20 @@ namespace AKCondinoO.Sims{
            var id=persistentDataTimeToLiveIds[i];
            if((persistentDataTimeToLive[id]-=Time.deltaTime)<0f){
             SimObject.PersistentData persistentData=persistentDataCache[id];
-            persistentDataSavingBG.data[id.simType][id.number]=persistentData;
             if(persistentSimActorDataCache.TryGetValue(id,out var persistentSimActorData)){
-             persistentDataSavingBG.simActorData[id.simType][id.number]=persistentSimActorData;
+             persistentDataSavingBG.gameSimActorDataToSerializeToFile[id.simType][id.number]=persistentSimActorData;
             }
+            persistentDataSavingBG.gameDataToSerializeToFile[id.simType][id.number]=persistentData;
                     persistentDataCache.Remove(id);
             persistentSimActorDataCache.Remove(id);
-            persistentDataTimeToLive   .Remove(id);
+            persistentDataTimeToLive.Remove(id);
               pendingPersistentDataSave=true;
-            persistentDataLoadingBG.data        [id.simType].TryRemove(id.number,out _);
+            persistentDataLoadingBG.gameDataNotInFileKeepCached[id.simType].TryRemove(id.number,out _);
            }
           }
          }
         }
-        bool pendingPersistentDataSaveAddedSimObjects;
+        bool saveAll;
         bool OnPendingPersistentDataPushToFile(){
          if(persistentDataSavingBG.IsCompleted(persistentDataSavingBGThread.IsRunning)){
           OnSavingPersistentData(exitSave:false);
@@ -461,11 +466,11 @@ namespace AKCondinoO.Sims{
                                      sA.persistentAIMyState);
              persistentSimActorDataCache[id]=persistentSimActorData;
              if(added){
-              persistentDataLoadingBG.simActorData[id.simType][id.number]=persistentSimActorData;
+              persistentDataLoadingBG.gameSimActorDataNotInFileKeepCached[id.simType][id.number]=persistentSimActorData;
              }
             }
             if(added){
-             persistentDataLoadingBG.data[id.simType][id.number]=persistentData;
+             persistentDataLoadingBG.gameDataNotInFileKeepCached[id.simType][id.number]=persistentData;
             }
             sO.persistentData=persistentData;
             active.Add(id,sO);
@@ -516,12 +521,12 @@ namespace AKCondinoO.Sims{
         internal class PersistentDataSavingBackgroundContainer:BackgroundContainer{
          internal readonly Dictionary<Type,ulong>ids=new Dictionary<Type,ulong>();
          internal readonly Dictionary<Type,List<ulong>>releasedIds=new Dictionary<Type,List<ulong>>();
-         internal readonly Dictionary<Type,ConcurrentDictionary<ulong,SimObject.PersistentData>>data=new Dictionary<Type,ConcurrentDictionary<ulong,SimObject.PersistentData>>();
+         internal readonly Dictionary<Type,ConcurrentDictionary<ulong,SimObject.PersistentData>>gameDataToSerializeToFile=new Dictionary<Type,ConcurrentDictionary<ulong,SimObject.PersistentData>>();
          internal readonly Dictionary<Type,ConcurrentDictionary<ulong,(SimActor.PersistentStatsTree statsTree,
                                                                        SimActor.PersistentSkillTree skillTree,
                                                                        SimActor.PersistentInventory inventory,
                                                                        SimActor.PersistentEquipment equipment,
-                                                                       SimActor.PersistentAIMyState AIMyState)>>simActorData=new Dictionary<Type,ConcurrentDictionary<ulong,(SimActor.PersistentStatsTree,SimActor.PersistentSkillTree,SimActor.PersistentInventory,SimActor.PersistentEquipment,SimActor.PersistentAIMyState)>>();
+                                                                       SimActor.PersistentAIMyState AIMyState)>>gameSimActorDataToSerializeToFile=new Dictionary<Type,ConcurrentDictionary<ulong,(SimActor.PersistentStatsTree,SimActor.PersistentSkillTree,SimActor.PersistentInventory,SimActor.PersistentEquipment,SimActor.PersistentAIMyState)>>();
         }
         internal PersistentDataSavingMultithreaded persistentDataSavingBGThread;
         internal class PersistentDataSavingMultithreaded:BaseMultithreaded<PersistentDataSavingBackgroundContainer>{
@@ -538,6 +543,11 @@ namespace AKCondinoO.Sims{
           internal readonly Dictionary<Type,StreamReader>fileStreamReader=new Dictionary<Type,StreamReader>();
            internal readonly StringBuilder stringBuilder=new StringBuilder();
             internal readonly StringBuilder lineStringBuilder=new StringBuilder();
+         internal readonly Dictionary<Type,FileStream[]>simActorDataFileStream=new Dictionary<Type,FileStream[]>();
+          internal readonly Dictionary<Type,StreamWriter[]>simActorDataFileStreamWriter=new Dictionary<Type,StreamWriter[]>();
+          internal readonly Dictionary<Type,StreamReader[]>simActorDataFileStreamReader=new Dictionary<Type,StreamReader[]>();
+           internal readonly StringBuilder simActorDataStringBuilder=new StringBuilder();
+            internal readonly StringBuilder simActorDataLineStringBuilder=new StringBuilder();
          readonly Dictionary<Type,Dictionary<int,List<(ulong id,SimObject.PersistentData persistentData)>>>idPersistentDataListBycnkIdxByType=new Dictionary<Type,Dictionary<int,List<(ulong,SimObject.PersistentData)>>>();
           internal static readonly ConcurrentQueue<List<(ulong id,SimObject.PersistentData persistentData)>>idPersistentDataListPool=new ConcurrentQueue<List<(ulong,SimObject.PersistentData)>>();
          readonly Dictionary<Type,List<ulong>>idListByType=new Dictionary<Type,List<ulong>>();
@@ -586,7 +596,7 @@ namespace AKCondinoO.Sims{
            foreach(var syn in simObjectSpawnSynchronization)Monitor.Enter(syn.Value);
            try{
             //Logger.Debug("before saving idPersistentDataListPool.Count:"+idPersistentDataListPool.Count);
-            foreach(var typePersistentDataToSavePair in container.data){Type t=typePersistentDataToSavePair.Key;var persistentDataToSave=typePersistentDataToSavePair.Value;
+            foreach(var typePersistentDataToSavePair in container.gameDataToSerializeToFile){Type t=typePersistentDataToSavePair.Key;var persistentDataToSave=typePersistentDataToSavePair.Value;
              //Logger.Debug("before saving type:"+t+", pending PersistentData to save:"+persistentDataToSave.Count);
              if(!idListByType.ContainsKey(t)){
               idListByType.Add(t,new List<ulong>());
@@ -611,7 +621,7 @@ namespace AKCondinoO.Sims{
               }
              }
              //Logger.Debug("will now save all of type:"+t+", still pending PersistentData to save for later:"+persistentDataToSave.Count);
-             if(container.simActorData.TryGetValue(t,out var persistentSimActorDataToSave)){
+             if(container.gameSimActorDataToSerializeToFile.TryGetValue(t,out var persistentSimActorDataToSave)){
               //  TO DO: fazer a leitura e gravação do arquivo aqui: testar id e remover, o que sobrar salvar no final.
               foreach(var idPersistentSimActorDataPair in persistentSimActorDataToSave){ulong id=idPersistentSimActorDataPair.Key;
                if(persistentSimActorDataToSave.TryRemove(id,out var persistentSimActorData)){
@@ -701,12 +711,12 @@ namespace AKCondinoO.Sims{
          internal readonly Dictionary<(Type simType,ulong number),(Vector3 position,Vector3 eulerAngles,Vector3 localScale)>specificIdsToLoad=new Dictionary<(Type,ulong),(Vector3,Vector3,Vector3)>();
          internal readonly HashSet<int>inputcnkIdx=new HashSet<int>();
          internal readonly SpawnData output=new SpawnData();
-         internal readonly Dictionary<Type,ConcurrentDictionary<ulong,SimObject.PersistentData>>data=new Dictionary<Type,ConcurrentDictionary<ulong,SimObject.PersistentData>>();
+         internal readonly Dictionary<Type,ConcurrentDictionary<ulong,SimObject.PersistentData>>gameDataNotInFileKeepCached=new Dictionary<Type,ConcurrentDictionary<ulong,SimObject.PersistentData>>();
          internal readonly Dictionary<Type,ConcurrentDictionary<ulong,(SimActor.PersistentStatsTree statsTree,
                                                                        SimActor.PersistentSkillTree skillTree,
                                                                        SimActor.PersistentInventory inventory,
                                                                        SimActor.PersistentEquipment equipment,
-                                                                       SimActor.PersistentAIMyState AIMyState)>>simActorData=new Dictionary<Type,ConcurrentDictionary<ulong,(SimActor.PersistentStatsTree,SimActor.PersistentSkillTree,SimActor.PersistentInventory,SimActor.PersistentEquipment,SimActor.PersistentAIMyState)>>();
+                                                                       SimActor.PersistentAIMyState AIMyState)>>gameSimActorDataNotInFileKeepCached=new Dictionary<Type,ConcurrentDictionary<ulong,(SimActor.PersistentStatsTree,SimActor.PersistentSkillTree,SimActor.PersistentInventory,SimActor.PersistentEquipment,SimActor.PersistentAIMyState)>>();
         }
         internal PersistentDataLoadingMultithreaded persistentDataLoadingBGThread;
         internal class PersistentDataLoadingMultithreaded:BaseMultithreaded<PersistentDataLoadingBackgroundContainer>{
@@ -715,7 +725,7 @@ namespace AKCondinoO.Sims{
          protected override void Execute(){
           container.output.dequeued=false;
           lock(simObjectSpawnSynchronization){
-           foreach(var typePersistentDataToLoadPair in container.data){Type t=typePersistentDataToLoadPair.Key;var persistentDataToLoad=typePersistentDataToLoadPair.Value;
+           foreach(var typePersistentDataToLoadPair in container.gameDataNotInFileKeepCached){Type t=typePersistentDataToLoadPair.Key;var persistentDataToLoad=typePersistentDataToLoadPair.Value;
             foreach(var idPersistentDataPair in persistentDataToLoad){ulong id=idPersistentDataPair.Key;
              (Type simType,ulong number)outputId=(t,id);
              SimObject.PersistentData persistentData=idPersistentDataPair.Value;
@@ -726,10 +736,10 @@ namespace AKCondinoO.Sims{
              }
             }
            }
-           foreach(var typePersistentSimActorDataToLoadPair in container.simActorData){Type t=typePersistentSimActorDataToLoadPair.Key;var persistentSimActorDataToLoad=typePersistentSimActorDataToLoadPair.Value;
+           foreach(var typePersistentSimActorDataToLoadPair in container.gameSimActorDataNotInFileKeepCached){Type t=typePersistentSimActorDataToLoadPair.Key;var persistentSimActorDataToLoad=typePersistentSimActorDataToLoadPair.Value;
             foreach(var idPersistentSimActorDataPair in persistentSimActorDataToLoad){ulong id=idPersistentSimActorDataPair.Key;
-             if(!container.data[t].ContainsKey(id)){
-              container.simActorData[t].TryRemove(id,out _);
+             if(!container.gameDataNotInFileKeepCached[t].ContainsKey(id)){
+              container.gameSimActorDataNotInFileKeepCached[t].TryRemove(id,out _);
              }
             }
            }

@@ -93,7 +93,28 @@ namespace AKCondinoO.Sims{
            persistentDataSavingBG.gameSimActorDataToSerializeToFile[t]=new ConcurrentDictionary<ulong,(PersistentStatsTree,PersistentSkillTree,PersistentInventory,PersistentEquipment,PersistentAIMyState)>();
            FileStream simActorDataFileStream;
            persistentDataSavingBGThread.simActorDataFileStream[t]=new FileStream[5];
-           //persistentDataSavingBGThread.simActorDataFileStream[t][0]=new FileStream();
+           persistentDataSavingBGThread.simActorDataFileStreamWriter[t]=new StreamWriter[5];
+           persistentDataSavingBGThread.simActorDataFileStreamReader[t]=new StreamReader[5];
+           string statsTreeSaveFile=string.Format("{0}{1}{2}{3}",Core.savePath,t,"_statsTree",".txt");
+           persistentDataSavingBGThread.simActorDataFileStream[t][0]=simActorDataFileStream=new FileStream(statsTreeSaveFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
+           persistentDataSavingBGThread.simActorDataFileStreamWriter[t][0]=new StreamWriter(simActorDataFileStream);
+           persistentDataSavingBGThread.simActorDataFileStreamReader[t][0]=new StreamReader(simActorDataFileStream);
+           string skillTreeSaveFile=string.Format("{0}{1}{2}{3}",Core.savePath,t,"_skillTree",".txt");
+           persistentDataSavingBGThread.simActorDataFileStream[t][1]=simActorDataFileStream=new FileStream(skillTreeSaveFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
+           persistentDataSavingBGThread.simActorDataFileStreamWriter[t][1]=new StreamWriter(simActorDataFileStream);
+           persistentDataSavingBGThread.simActorDataFileStreamReader[t][1]=new StreamReader(simActorDataFileStream);
+           string inventorySaveFile=string.Format("{0}{1}{2}{3}",Core.savePath,t,"_inventory",".txt");
+           persistentDataSavingBGThread.simActorDataFileStream[t][2]=simActorDataFileStream=new FileStream(inventorySaveFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
+           persistentDataSavingBGThread.simActorDataFileStreamWriter[t][2]=new StreamWriter(simActorDataFileStream);
+           persistentDataSavingBGThread.simActorDataFileStreamReader[t][2]=new StreamReader(simActorDataFileStream);
+           string equipmentSaveFile=string.Format("{0}{1}{2}{3}",Core.savePath,t,"_equipment",".txt");
+           persistentDataSavingBGThread.simActorDataFileStream[t][3]=simActorDataFileStream=new FileStream(equipmentSaveFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
+           persistentDataSavingBGThread.simActorDataFileStreamWriter[t][3]=new StreamWriter(simActorDataFileStream);
+           persistentDataSavingBGThread.simActorDataFileStreamReader[t][3]=new StreamReader(simActorDataFileStream);
+           string AIMyStateSaveFile=string.Format("{0}{1}{2}{3}",Core.savePath,t,"_AIMyState",".txt");
+           persistentDataSavingBGThread.simActorDataFileStream[t][4]=simActorDataFileStream=new FileStream(AIMyStateSaveFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
+           persistentDataSavingBGThread.simActorDataFileStreamWriter[t][4]=new StreamWriter(simActorDataFileStream);
+           persistentDataSavingBGThread.simActorDataFileStreamReader[t][4]=new StreamReader(simActorDataFileStream);
             persistentDataLoadingBG.gameSimActorDataNotInFileKeepCached[t]=new ConcurrentDictionary<ulong,(PersistentStatsTree,PersistentSkillTree,PersistentInventory,PersistentEquipment,PersistentAIMyState)>();
           }
          }
@@ -126,6 +147,13 @@ namespace AKCondinoO.Sims{
          persistentDataSavingBGThread.idsFileStreamReader.Dispose();
          persistentDataSavingBGThread.releasedIdsFileStreamWriter.Dispose();
          persistentDataSavingBGThread.releasedIdsFileStreamReader.Dispose();
+         foreach(var kvp in persistentDataSavingBGThread.simActorDataFileStream){
+          Type t=kvp.Key;
+          for(int i=0;i<kvp.Value.Length;++i){
+           persistentDataSavingBGThread.simActorDataFileStreamWriter[t][i].Dispose();
+           persistentDataSavingBGThread.simActorDataFileStreamReader[t][i].Dispose();
+          }
+         }
          foreach(var kvp in persistentDataLoadingBGThread.fileStream){
           Type t=kvp.Key;
           persistentDataLoadingBGThread.fileStream      [t].Dispose();
@@ -551,6 +579,7 @@ namespace AKCondinoO.Sims{
          readonly Dictionary<Type,Dictionary<int,List<(ulong id,SimObject.PersistentData persistentData)>>>idPersistentDataListBycnkIdxByType=new Dictionary<Type,Dictionary<int,List<(ulong,SimObject.PersistentData)>>>();
           internal static readonly ConcurrentQueue<List<(ulong id,SimObject.PersistentData persistentData)>>idPersistentDataListPool=new ConcurrentQueue<List<(ulong,SimObject.PersistentData)>>();
          readonly Dictionary<Type,List<ulong>>idListByType=new Dictionary<Type,List<ulong>>();
+          readonly List<ulong>simActorIdList=new List<ulong>();
          readonly List<int>processedcnkIdx=new List<int>();
          internal PersistentDataSavingMultithreaded(){
           idsFileStream=new FileStream(SimObjectSpawner.idsFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
@@ -626,12 +655,37 @@ namespace AKCondinoO.Sims{
               foreach(var idPersistentSimActorDataPair in persistentSimActorDataToSave){ulong id=idPersistentSimActorDataPair.Key;
                if(persistentSimActorDataToSave.TryRemove(id,out var persistentSimActorData)){
 
+
                }
               }
              }
             }
             foreach(var kvp in idListByType){Type t=kvp.Key;var idList=kvp.Value;
-             
+             if(container.gameSimActorDataToSerializeToFile.TryGetValue(t,out var persistentSimActorDataToSave)){
+              simActorIdList.Clear();
+              simActorIdList.AddRange(idList);
+              FileStream fileStream=this.simActorDataFileStream[t][0];
+              StreamWriter fileStreamWriter=this.simActorDataFileStreamWriter[t][0];
+              StreamReader fileStreamReader=this.simActorDataFileStreamReader[t][0];
+              simActorDataStringBuilder.Clear();
+              fileStream.Position=0L;
+              fileStreamReader.DiscardBufferedData();
+              string line;
+              while((line=fileStreamReader.ReadLine())!=null){
+               if(string.IsNullOrEmpty(line)){continue;}
+               simActorDataLineStringBuilder.Clear();
+               int idStringStart=line.IndexOf("id=")+3;
+               int idStringEnd=line.IndexOf(" ,",idStringStart);
+               ulong id=ulong.Parse(line.Substring(idStringStart,idStringEnd-idStringStart));
+               Logger.Debug("process statsTreeSaveFile at id:"+id);
+              }
+
+
+
+
+              simActorIdList.Clear();
+              simActorIdList.AddRange(idList);
+             }
             }
             foreach(var kvp1 in idPersistentDataListBycnkIdxByType){Type t=kvp1.Key;var idPersistentDataListBycnkIdx=kvp1.Value;
              processedcnkIdx.Clear();

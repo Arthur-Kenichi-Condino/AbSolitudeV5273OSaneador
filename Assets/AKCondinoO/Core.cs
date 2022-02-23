@@ -52,7 +52,7 @@ namespace AKCondinoO{
            debug=new NavMeshBuildDebugSettings{
             flags=NavMeshBuildDebugFlags.None,
            },
-           maxJobWorkers=2,
+           maxJobWorkers=1,
           },
           new NavMeshBuildSettings{
            agentTypeID=GetAgentTypeIDByName("Small").Value,//  Small size agent
@@ -68,7 +68,7 @@ namespace AKCondinoO{
            debug=new NavMeshBuildDebugSettings{
             flags=NavMeshBuildDebugFlags.None,
            },
-           maxJobWorkers=2,
+           maxJobWorkers=1,
           },
          };
         }

@@ -14,6 +14,7 @@ namespace AKCondinoO.Sims{
     internal class SimObject:MonoBehaviour{
         internal readonly SimObjectSpawner.SimObjectSync synchronizer=new SimObjectSpawner.SimObjectSync();
         internal(Type simType,ulong number)?id=null;
+        internal static readonly CultureInfo en=CultureInfo.GetCultureInfo("en");
         internal PersistentData persistentData;
         internal struct PersistentData{
          public Quaternion rotation;
@@ -27,7 +28,6 @@ namespace AKCondinoO.Sims{
            SimObjectSpawner.Singleton.persistentDataCache[sO.id.Value]=this;
           }
          }
-         static readonly CultureInfo en=CultureInfo.GetCultureInfo("en");
          public override string ToString(){
           return string.Format(en,"persistentData={{ position={0}, rotation={1}, localScale={2}, }}",position,rotation,localScale);
          }

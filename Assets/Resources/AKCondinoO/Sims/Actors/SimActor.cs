@@ -4,6 +4,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using UnityEngine;
 using UnityEngine.AI;
 using static AKCondinoO.Voxels.VoxelSystem;
@@ -11,6 +12,9 @@ namespace AKCondinoO.Sims.Actors{
     internal class SimActor:SimObject{
         internal PersistentStatsTree persistentStatsTree;
         internal struct PersistentStatsTree{
+         public override string ToString(){
+          return string.Format(en,"persistentStatsTree={{ }}");
+         }
         }
         internal PersistentSkillTree persistentSkillTree;
         internal struct PersistentSkillTree{

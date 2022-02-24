@@ -709,6 +709,12 @@ namespace AKCondinoO.Sims{
               fileStream=this.simActorDataFileStream[t][1];
               fileStreamWriter=this.simActorDataFileStreamWriter[t][1];
               fileStreamReader=this.simActorDataFileStreamReader[t][1];
+              simActorDataStringBuilder.Clear();
+              fileStream.Position=0L;
+              fileStreamReader.DiscardBufferedData();
+              while((line=fileStreamReader.ReadLine())!=null){
+               if(string.IsNullOrEmpty(line)){continue;}
+              }
              }
             }
             foreach(var kvp1 in idPersistentDataListBycnkIdxByType){Type t=kvp1.Key;var idPersistentDataListBycnkIdx=kvp1.Value;

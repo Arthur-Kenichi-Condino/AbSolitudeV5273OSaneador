@@ -714,6 +714,60 @@ namespace AKCondinoO.Sims{
               fileStreamReader.DiscardBufferedData();
               while((line=fileStreamReader.ReadLine())!=null){
                if(string.IsNullOrEmpty(line)){continue;}
+               int idStringStart=line.IndexOf("id=")+3;
+               int idStringEnd=line.IndexOf(" ,",idStringStart);
+               ulong id=ulong.Parse(line.Substring(idStringStart,idStringEnd-idStringStart));
+               simActorDataToSaveIdList.Remove(id);
+               if(persistentSimActorDataToSave.TryGetValue(id,out var persistentSimActorData)){
+                Logger.Debug("process skillTreeSaveFile at id:"+id);
+                int totalCharactersRemoved=0;
+                simActorDataLineStringBuilder.Clear();
+                simActorDataLineStringBuilder.Append(line);
+                int persistentSkillTreeStringStart=idStringEnd+2;
+                int endOfLineStart=persistentSkillTreeStringStart;
+                persistentSkillTreeStringStart=line.IndexOf("persistentSkillTree=",persistentSkillTreeStringStart);
+                if(persistentSkillTreeStringStart>=0){
+                 int persistentSkillTreeStringEnd=line.IndexOf("} ",persistentSkillTreeStringStart)+2;
+                 int toRemoveLength=persistentSkillTreeStringEnd-totalCharactersRemoved-(persistentSkillTreeStringStart-totalCharactersRemoved);
+                 simActorDataLineStringBuilder.Remove(persistentSkillTreeStringStart-totalCharactersRemoved,toRemoveLength);
+                 totalCharactersRemoved+=toRemoveLength;
+                 endOfLineStart=persistentSkillTreeStringEnd;
+                }
+                endOfLineStart=line.IndexOf("} }, ",endOfLineStart);
+                int endOfLineEnd=line.IndexOf(", ",endOfLineStart)+2;
+                simActorDataLineStringBuilder.Remove(endOfLineStart-totalCharactersRemoved,endOfLineEnd-totalCharactersRemoved-(endOfLineStart-totalCharactersRemoved));
+                line=simActorDataLineStringBuilder.ToString();
+                simActorDataStringBuilder.Append(line);
+                simActorDataStringBuilder.AppendFormat("{0} ",persistentSimActorData.skillTree.ToString());
+                simActorDataStringBuilder.AppendFormat("}} }}, {0}",Environment.NewLine);
+               }else{
+                simActorDataStringBuilder.AppendLine(line);
+               }
+              }
+              for(int i=0;i<simActorDataToSaveIdList.Count;++i){ulong id=simActorDataToSaveIdList[i];
+               if(persistentSimActorDataToSave.TryGetValue(id,out var persistentSimActorData)){
+                simActorDataStringBuilder.AppendFormat("{{ id={0} , {{ ",id);
+                simActorDataStringBuilder.AppendFormat("{0} ",persistentSimActorData.skillTree.ToString());
+                simActorDataStringBuilder.AppendFormat("}} }}, {0}",Environment.NewLine);
+               }
+              }
+              fileStream.SetLength(0L);
+              fileStreamWriter.Write(simActorDataStringBuilder.ToString());
+              fileStreamWriter.Flush();
+              simActorDataToSaveIdList.Clear();
+              simActorDataToSaveIdList.AddRange(idList);
+              fileStream=this.simActorDataFileStream[t][2];
+              fileStreamWriter=this.simActorDataFileStreamWriter[t][2];
+              fileStreamReader=this.simActorDataFileStreamReader[t][2];
+              simActorDataStringBuilder.Clear();
+              fileStream.Position=0L;
+              fileStreamReader.DiscardBufferedData();
+              while((line=fileStreamReader.ReadLine())!=null){
+               if(string.IsNullOrEmpty(line)){continue;}
+               int idStringStart=line.IndexOf("id=")+3;
+               int idStringEnd=line.IndexOf(" ,",idStringStart);
+               ulong id=ulong.Parse(line.Substring(idStringStart,idStringEnd-idStringStart));
+               simActorDataToSaveIdList.Remove(id);
               }
              }
             }

@@ -18,6 +18,9 @@ namespace AKCondinoO.Sims.Actors{
         }
         internal PersistentSkillTree persistentSkillTree;
         internal struct PersistentSkillTree{
+         public override string ToString(){
+          return string.Format(en,"persistentSkillTree={{ }}");
+         }
         }
         internal PersistentInventory persistentInventory;
         internal struct PersistentInventory{

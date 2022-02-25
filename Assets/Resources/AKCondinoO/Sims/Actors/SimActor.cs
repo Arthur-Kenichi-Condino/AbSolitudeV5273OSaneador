@@ -24,6 +24,9 @@ namespace AKCondinoO.Sims.Actors{
         }
         internal PersistentInventory persistentInventory;
         internal struct PersistentInventory{
+         public override string ToString(){
+          return string.Format(en,"persistentInventory={{ }}");
+         }
         }
         internal PersistentEquipment persistentEquipment;
         internal struct PersistentEquipment{

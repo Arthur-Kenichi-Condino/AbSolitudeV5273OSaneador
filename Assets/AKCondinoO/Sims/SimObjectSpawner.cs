@@ -768,7 +768,47 @@ namespace AKCondinoO.Sims{
                int idStringEnd=line.IndexOf(" ,",idStringStart);
                ulong id=ulong.Parse(line.Substring(idStringStart,idStringEnd-idStringStart));
                simActorDataToSaveIdList.Remove(id);
+               if(persistentSimActorDataToSave.TryGetValue(id,out var persistentSimActorData)){
+                Logger.Debug("process inventorySaveFile at id:"+id);
+                int totalCharactersRemoved=0;
+                simActorDataLineStringBuilder.Clear();
+                simActorDataLineStringBuilder.Append(line);
+                int persistentInventoryStringStart=idStringEnd+2;
+                int endOfLineStart=persistentInventoryStringStart;
+                persistentInventoryStringStart=line.IndexOf("persistentInventory=",persistentInventoryStringStart);
+                if(persistentInventoryStringStart>=0){
+                 int persistentInventoryStringEnd=line.IndexOf("} ",persistentInventoryStringStart)+2;
+                 int toRemoveLength=persistentInventoryStringEnd-totalCharactersRemoved-(persistentInventoryStringStart-totalCharactersRemoved);
+                 simActorDataLineStringBuilder.Remove(persistentInventoryStringStart-totalCharactersRemoved,toRemoveLength);
+                 totalCharactersRemoved+=toRemoveLength;
+                 endOfLineStart=persistentInventoryStringEnd;
+                }
+                endOfLineStart=line.IndexOf("} }, ",endOfLineStart);
+                int endOfLineEnd=line.IndexOf(", ",endOfLineStart)+2;
+                simActorDataLineStringBuilder.Remove(endOfLineStart-totalCharactersRemoved,endOfLineEnd-totalCharactersRemoved-(endOfLineStart-totalCharactersRemoved));
+                line=simActorDataLineStringBuilder.ToString();
+                simActorDataStringBuilder.Append(line);
+                simActorDataStringBuilder.AppendFormat("{0} ",persistentSimActorData.inventory.ToString());
+                simActorDataStringBuilder.AppendFormat("}} }}, {0}",Environment.NewLine);
+               }else{
+                simActorDataStringBuilder.AppendLine(line);
+               }
               }
+              for(int i=0;i<simActorDataToSaveIdList.Count;++i){ulong id=simActorDataToSaveIdList[i];
+               if(persistentSimActorDataToSave.TryGetValue(id,out var persistentSimActorData)){
+                simActorDataStringBuilder.AppendFormat("{{ id={0} , {{ ",id);
+                simActorDataStringBuilder.AppendFormat("{0} ",persistentSimActorData.inventory.ToString());
+                simActorDataStringBuilder.AppendFormat("}} }}, {0}",Environment.NewLine);
+               }
+              }
+              fileStream.SetLength(0L);
+              fileStreamWriter.Write(simActorDataStringBuilder.ToString());
+              fileStreamWriter.Flush();
+              simActorDataToSaveIdList.Clear();
+              simActorDataToSaveIdList.AddRange(idList);
+              fileStream=this.simActorDataFileStream[t][3];
+              fileStreamWriter=this.simActorDataFileStreamWriter[t][3];
+              fileStreamReader=this.simActorDataFileStreamReader[t][3];
              }
             }
             foreach(var kvp1 in idPersistentDataListBycnkIdxByType){Type t=kvp1.Key;var idPersistentDataListBycnkIdx=kvp1.Value;

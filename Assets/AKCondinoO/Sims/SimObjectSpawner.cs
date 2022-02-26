@@ -653,6 +653,7 @@ namespace AKCondinoO.Sims{
             }
             foreach(var kvp in idListByType){Type t=kvp.Key;var idList=kvp.Value;
              if(container.gameSimActorDataToSerializeToFile.TryGetValue(t,out var persistentSimActorDataToSave)){
+              #region persistentStatsTree
               simActorDataToSaveIdList.Clear();
               simActorDataToSaveIdList.AddRange(idList);
               FileStream fileStream=this.simActorDataFileStream[t][0];
@@ -704,6 +705,8 @@ namespace AKCondinoO.Sims{
               fileStream.SetLength(0L);
               fileStreamWriter.Write(simActorDataStringBuilder.ToString());
               fileStreamWriter.Flush();
+              #endregion 
+              #region persistentSkillTree
               simActorDataToSaveIdList.Clear();
               simActorDataToSaveIdList.AddRange(idList);
               fileStream=this.simActorDataFileStream[t][1];
@@ -754,6 +757,8 @@ namespace AKCondinoO.Sims{
               fileStream.SetLength(0L);
               fileStreamWriter.Write(simActorDataStringBuilder.ToString());
               fileStreamWriter.Flush();
+              #endregion 
+              #region persistentInventory
               simActorDataToSaveIdList.Clear();
               simActorDataToSaveIdList.AddRange(idList);
               fileStream=this.simActorDataFileStream[t][2];
@@ -804,11 +809,32 @@ namespace AKCondinoO.Sims{
               fileStream.SetLength(0L);
               fileStreamWriter.Write(simActorDataStringBuilder.ToString());
               fileStreamWriter.Flush();
+              #endregion 
+              #region persistentEquipment
               simActorDataToSaveIdList.Clear();
               simActorDataToSaveIdList.AddRange(idList);
               fileStream=this.simActorDataFileStream[t][3];
               fileStreamWriter=this.simActorDataFileStreamWriter[t][3];
               fileStreamReader=this.simActorDataFileStreamReader[t][3];
+              simActorDataStringBuilder.Clear();
+              fileStream.Position=0L;
+              fileStreamReader.DiscardBufferedData();
+              while((line=fileStreamReader.ReadLine())!=null){
+               if(string.IsNullOrEmpty(line)){continue;}
+               int idStringStart=line.IndexOf("id=")+3;
+               int idStringEnd=line.IndexOf(" ,",idStringStart);
+               ulong id=ulong.Parse(line.Substring(idStringStart,idStringEnd-idStringStart));
+               simActorDataToSaveIdList.Remove(id);
+               if(persistentSimActorDataToSave.TryGetValue(id,out var persistentSimActorData)){
+                Logger.Debug("process equipmentSaveFile at id:"+id);
+                int totalCharactersRemoved=0;
+                simActorDataLineStringBuilder.Clear();
+                simActorDataLineStringBuilder.Append(line);
+                int persistentEquipmentStringStart=idStringEnd+2;
+               }else{
+               }
+              }
+              #endregion 
              }
             }
             foreach(var kvp1 in idPersistentDataListBycnkIdxByType){Type t=kvp1.Key;var idPersistentDataListBycnkIdx=kvp1.Value;

@@ -280,6 +280,17 @@ namespace AKCondinoO.Sims{
             persistentDataLoadingBG.gameDataNotInFileKeepCached[sO.id.Value.simType].TryUpdate  (sO.id.Value.number,sO.persistentData,oldPersistentData);
          }
         }
+        internal void OnPersistentSimActorDataUpdated(SimActor sA){
+         var persistentSimActorData=(sA.persistentStatsTree,
+                                     sA.persistentSkillTree,
+                                     sA.persistentInventory,
+                                     sA.persistentEquipment,
+                                     sA.persistentAIMyState);
+         persistentSimActorDataAliveUpdating[sA.id.Value]=persistentSimActorData;
+         if(persistentDataLoadingBG.gameSimActorDataNotInFileKeepCached[sA.id.Value.simType].TryGetValue(sA.id.Value.number,out var oldPersistentSimActorData)){
+            persistentDataLoadingBG.gameSimActorDataNotInFileKeepCached[sA.id.Value.simType].TryUpdate  (sA.id.Value.number,persistentSimActorData,oldPersistentSimActorData);
+         }
+        }
         void OnSavingPersistentData(bool exitSave){
          foreach(var syn in simObjectSyncsPendingAddToSynchronization){
           var sO=syn.Key;
@@ -898,9 +909,27 @@ namespace AKCondinoO.Sims{
                  totalCharactersRemoved+=toRemoveLength;
                  endOfLineStart=persistentAIMyStateStringEnd;
                 }
+                endOfLineStart=line.IndexOf("} }, ",endOfLineStart);
+                int endOfLineEnd=line.IndexOf(", ",endOfLineStart)+2;
+                simActorDataLineStringBuilder.Remove(endOfLineStart-totalCharactersRemoved,endOfLineEnd-totalCharactersRemoved-(endOfLineStart-totalCharactersRemoved));
+                line=simActorDataLineStringBuilder.ToString();
+                simActorDataStringBuilder.Append(line);
+                simActorDataStringBuilder.AppendFormat("{0} ",persistentSimActorData.AIMyState.ToString());
+                simActorDataStringBuilder.AppendFormat("}} }}, {0}",Environment.NewLine);
                }else{
+                simActorDataStringBuilder.AppendLine(line);
                }
               }
+              for(int i=0;i<simActorDataToSaveIdList.Count;++i){ulong id=simActorDataToSaveIdList[i];
+               if(persistentSimActorDataToSave.TryRemove(id,out var persistentSimActorData)){
+                simActorDataStringBuilder.AppendFormat("{{ id={0} , {{ ",id);
+                simActorDataStringBuilder.AppendFormat("{0} ",persistentSimActorData.AIMyState.ToString());
+                simActorDataStringBuilder.AppendFormat("}} }}, {0}",Environment.NewLine);
+               }
+              }
+              fileStream.SetLength(0L);
+              fileStreamWriter.Write(simActorDataStringBuilder.ToString());
+              fileStreamWriter.Flush();
               #endregion 
              }
             }
@@ -993,6 +1022,8 @@ namespace AKCondinoO.Sims{
         internal class PersistentDataLoadingMultithreaded:BaseMultithreaded<PersistentDataLoadingBackgroundContainer>{
          internal readonly Dictionary<Type,FileStream>fileStream=new Dictionary<Type,FileStream>();
           internal readonly Dictionary<Type,StreamReader>fileStreamReader=new Dictionary<Type,StreamReader>();            
+         internal readonly Dictionary<Type,FileStream[]>simActorDataFileStream=new Dictionary<Type,FileStream[]>();
+          internal readonly Dictionary<Type,StreamReader[]>simActorDataFileStreamReader=new Dictionary<Type,StreamReader[]>();
          protected override void Execute(){
           container.output.dequeued=false;
           lock(simObjectSpawnSynchronization){

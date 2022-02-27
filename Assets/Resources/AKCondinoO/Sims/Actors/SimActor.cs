@@ -36,6 +36,9 @@ namespace AKCondinoO.Sims.Actors{
         }
         internal PersistentAIMyState persistentAIMyState;
         internal struct PersistentAIMyState{
+         public override string ToString(){
+          return string.Format(en,"persistentAIMyState={{ }}");
+         }
         }
         internal CharacterController characterController;
         internal NavMeshAgent navMeshAgent;

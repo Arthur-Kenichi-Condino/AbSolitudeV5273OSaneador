@@ -196,12 +196,12 @@ namespace AKCondinoO.Sims{
         [SerializeField]bool      DEBUG_SAVE_PENDING_PERSISTENT_DATA=false;
         [SerializeField]int       DEBUG_LOAD_SIM_OBJECTS_AT_CHUNK=0;
         [SerializeField]bool      DEBUG_LOAD_SIM_OBJECTS=false;
-        internal readonly Dictionary<(Type simType,ulong number),SimObject.PersistentData>persistentDataCache=new Dictionary<(Type,ulong),SimObject.PersistentData>();
+        internal readonly Dictionary<(Type simType,ulong number),SimObject.PersistentData>persistentDataAliveUpdating=new Dictionary<(Type,ulong),SimObject.PersistentData>();
         internal readonly Dictionary<(Type simType,ulong number),(SimActor.PersistentStatsTree statsTree,
                                                                   SimActor.PersistentSkillTree skillTree,
                                                                   SimActor.PersistentInventory inventory,
                                                                   SimActor.PersistentEquipment equipment,
-                                                                  SimActor.PersistentAIMyState AIMyState)>persistentSimActorDataCache=new Dictionary<(Type,ulong),(SimActor.PersistentStatsTree,SimActor.PersistentSkillTree,SimActor.PersistentInventory,SimActor.PersistentEquipment,SimActor.PersistentAIMyState)>();
+                                                                  SimActor.PersistentAIMyState AIMyState)>persistentSimActorDataAliveUpdating=new Dictionary<(Type,ulong),(SimActor.PersistentStatsTree,SimActor.PersistentSkillTree,SimActor.PersistentInventory,SimActor.PersistentEquipment,SimActor.PersistentAIMyState)>();
          readonly Dictionary<(Type simType,ulong number),float>persistentDataTimeToLive=new Dictionary<(Type,ulong),float>();
           readonly List<(Type simType,ulong number)>persistentDataTimeToLiveIds=new List<(Type,ulong)>();
         internal readonly Dictionary<Type,ulong>ids=new Dictionary<Type,ulong>();
@@ -274,6 +274,12 @@ namespace AKCondinoO.Sims{
          }
          anyPlayerBoundsChanged=false;
         }
+        internal void OnPersistentDataUpdated(SimObject sO){
+         persistentDataAliveUpdating[sO.id.Value]=sO.persistentData;
+         if(persistentDataLoadingBG.gameDataNotInFileKeepCached[sO.id.Value.simType].TryGetValue(sO.id.Value.number,out SimObject.PersistentData oldPersistentData)){
+            persistentDataLoadingBG.gameDataNotInFileKeepCached[sO.id.Value.simType].TryUpdate  (sO.id.Value.number,sO.persistentData,oldPersistentData);
+         }
+        }
         void OnSavingPersistentData(bool exitSave){
          foreach(var syn in simObjectSyncsPendingAddToSynchronization){
           var sO=syn.Key;
@@ -282,20 +288,20 @@ namespace AKCondinoO.Sims{
          }
          simObjectSyncsPendingAddToSynchronization.Clear();
          if(exitSave){
-          foreach(var kvp in persistentDataCache){var id=kvp.Key;var persistentData=kvp.Value;
-           if(persistentSimActorDataCache.TryGetValue(id,out var persistentSimActorData)){
+          foreach(var kvp in persistentDataAliveUpdating){var id=kvp.Key;var persistentData=kvp.Value;
+           if(persistentSimActorDataAliveUpdating.TryGetValue(id,out var persistentSimActorData)){
             persistentDataSavingBG.gameSimActorDataToSerializeToFile[id.simType][id.number]=persistentSimActorData;
            }
            persistentDataSavingBG.gameDataToSerializeToFile[id.simType][id.number]=persistentData;
           }
-                  persistentDataCache.Clear();
-          persistentSimActorDataCache.Clear();
-          persistentDataTimeToLive.Clear();
+                  persistentDataAliveUpdating.Clear();
+          persistentSimActorDataAliveUpdating.Clear();
+                  persistentDataTimeToLive   .Clear();
          }
          if(saveAll){
             saveAll=false;
-          foreach(var kvp in persistentDataCache){var id=kvp.Key;var persistentData=kvp.Value;
-           if(persistentSimActorDataCache.TryGetValue(id,out var persistentSimActorData)){
+          foreach(var kvp in persistentDataAliveUpdating){var id=kvp.Key;var persistentData=kvp.Value;
+           if(persistentSimActorDataAliveUpdating.TryGetValue(id,out var persistentSimActorData)){
             persistentDataSavingBG.gameSimActorDataToSerializeToFile[id.simType][id.number]=persistentSimActorData;
            }
            persistentDataSavingBG.gameDataToSerializeToFile[id.simType][id.number]=persistentData;
@@ -320,15 +326,15 @@ namespace AKCondinoO.Sims{
           for(int i=0;i<persistentDataTimeToLiveIds.Count;++i){
            var id=persistentDataTimeToLiveIds[i];
            if((persistentDataTimeToLive[id]-=Time.deltaTime)<0f){
-            SimObject.PersistentData persistentData=persistentDataCache[id];
-            if(persistentSimActorDataCache.TryGetValue(id,out var persistentSimActorData)){
+            SimObject.PersistentData persistentData=persistentDataAliveUpdating[id];
+            if(persistentSimActorDataAliveUpdating.TryGetValue(id,out var persistentSimActorData)){
              persistentDataSavingBG.gameSimActorDataToSerializeToFile[id.simType][id.number]=persistentSimActorData;
             }
             persistentDataSavingBG.gameDataToSerializeToFile[id.simType][id.number]=persistentData;
-                    persistentDataCache.Remove(id);
-            persistentSimActorDataCache.Remove(id);
-            persistentDataTimeToLive.Remove(id);
-              pendingPersistentDataSave=true;
+                    persistentDataAliveUpdating.Remove(id);
+            persistentSimActorDataAliveUpdating.Remove(id);
+                    persistentDataTimeToLive   .Remove(id);
+            pendingPersistentDataSave=true;
             persistentDataLoadingBG.gameDataNotInFileKeepCached[id.simType].TryRemove(id.number,out _);
            }
           }
@@ -479,7 +485,7 @@ namespace AKCondinoO.Sims{
              persistentData.rotation=gO.transform.rotation;
              persistentData.localScale=gO.transform.localScale;
             }
-            persistentDataCache[id]=persistentData;
+            persistentDataAliveUpdating[id]=persistentData;
             if(sO is SimActor sA){
              (SimActor.PersistentStatsTree persistentStatsTree,
               SimActor.PersistentSkillTree persistentSkillTree,
@@ -492,7 +498,7 @@ namespace AKCondinoO.Sims{
                                      sA.persistentInventory,
                                      sA.persistentEquipment,
                                      sA.persistentAIMyState);
-             persistentSimActorDataCache[id]=persistentSimActorData;
+             persistentSimActorDataAliveUpdating[id]=persistentSimActorData;
              if(added){
               persistentDataLoadingBG.gameSimActorDataNotInFileKeepCached[id.simType][id.number]=persistentSimActorData;
              }
@@ -831,6 +837,67 @@ namespace AKCondinoO.Sims{
                 simActorDataLineStringBuilder.Clear();
                 simActorDataLineStringBuilder.Append(line);
                 int persistentEquipmentStringStart=idStringEnd+2;
+                int endOfLineStart=persistentEquipmentStringStart;
+                persistentEquipmentStringStart=line.IndexOf("persistentEquipment=",persistentEquipmentStringStart);
+                if(persistentEquipmentStringStart>=0){
+                 int persistentEquipmentStringEnd=line.IndexOf("} ",persistentEquipmentStringStart)+2;
+                 int toRemoveLength=persistentEquipmentStringEnd-totalCharactersRemoved-(persistentEquipmentStringStart-totalCharactersRemoved);
+                 simActorDataLineStringBuilder.Remove(persistentEquipmentStringStart-totalCharactersRemoved,toRemoveLength);
+                 totalCharactersRemoved+=toRemoveLength;
+                 endOfLineStart=persistentEquipmentStringEnd;
+                }
+                endOfLineStart=line.IndexOf("} }, ",endOfLineStart);
+                int endOfLineEnd=line.IndexOf(", ",endOfLineStart)+2;
+                simActorDataLineStringBuilder.Remove(endOfLineStart-totalCharactersRemoved,endOfLineEnd-totalCharactersRemoved-(endOfLineStart-totalCharactersRemoved));
+                line=simActorDataLineStringBuilder.ToString();
+                simActorDataStringBuilder.Append(line);
+                simActorDataStringBuilder.AppendFormat("{0} ",persistentSimActorData.equipment.ToString());
+                simActorDataStringBuilder.AppendFormat("}} }}, {0}",Environment.NewLine);
+               }else{
+                simActorDataStringBuilder.AppendLine(line);
+               }
+              }
+              for(int i=0;i<simActorDataToSaveIdList.Count;++i){ulong id=simActorDataToSaveIdList[i];
+               if(persistentSimActorDataToSave.TryGetValue(id,out var persistentSimActorData)){
+                simActorDataStringBuilder.AppendFormat("{{ id={0} , {{ ",id);
+                simActorDataStringBuilder.AppendFormat("{0} ",persistentSimActorData.equipment.ToString());
+                simActorDataStringBuilder.AppendFormat("}} }}, {0}",Environment.NewLine);
+               }
+              }
+              fileStream.SetLength(0L);
+              fileStreamWriter.Write(simActorDataStringBuilder.ToString());
+              fileStreamWriter.Flush();
+              #endregion 
+              #region persistentAIMyState
+              simActorDataToSaveIdList.Clear();
+              simActorDataToSaveIdList.AddRange(idList);
+              fileStream=this.simActorDataFileStream[t][4];
+              fileStreamWriter=this.simActorDataFileStreamWriter[t][4];
+              fileStreamReader=this.simActorDataFileStreamReader[t][4];
+              simActorDataStringBuilder.Clear();
+              fileStream.Position=0L;
+              fileStreamReader.DiscardBufferedData();
+              while((line=fileStreamReader.ReadLine())!=null){
+               if(string.IsNullOrEmpty(line)){continue;}
+               int idStringStart=line.IndexOf("id=")+3;
+               int idStringEnd=line.IndexOf(" ,",idStringStart);
+               ulong id=ulong.Parse(line.Substring(idStringStart,idStringEnd-idStringStart));
+               simActorDataToSaveIdList.Remove(id);
+               if(persistentSimActorDataToSave.TryRemove(id,out var persistentSimActorData)){
+                Logger.Debug("process AIMyStateSaveFile at id:"+id);
+                int totalCharactersRemoved=0;
+                simActorDataLineStringBuilder.Clear();
+                simActorDataLineStringBuilder.Append(line);
+                int persistentAIMyStateStringStart=idStringEnd+2;
+                int endOfLineStart=persistentAIMyStateStringStart;
+                persistentAIMyStateStringStart=line.IndexOf("persistentAIMyState=",persistentAIMyStateStringStart);
+                if(persistentAIMyStateStringStart>=0){
+                 int persistentAIMyStateStringEnd=line.IndexOf("} ",persistentAIMyStateStringStart)+2;
+                 int toRemoveLength=persistentAIMyStateStringEnd-totalCharactersRemoved-(persistentAIMyStateStringStart-totalCharactersRemoved);
+                 simActorDataLineStringBuilder.Remove(persistentAIMyStateStringStart-totalCharactersRemoved,toRemoveLength);
+                 totalCharactersRemoved+=toRemoveLength;
+                 endOfLineStart=persistentAIMyStateStringEnd;
+                }
                }else{
                }
               }

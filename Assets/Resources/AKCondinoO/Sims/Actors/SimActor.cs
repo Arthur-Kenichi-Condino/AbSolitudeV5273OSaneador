@@ -30,6 +30,9 @@ namespace AKCondinoO.Sims.Actors{
         }
         internal PersistentEquipment persistentEquipment;
         internal struct PersistentEquipment{
+         public override string ToString(){
+          return string.Format(en,"persistentEquipment={{ }}");
+         }
         }
         internal PersistentAIMyState persistentAIMyState;
         internal struct PersistentAIMyState{

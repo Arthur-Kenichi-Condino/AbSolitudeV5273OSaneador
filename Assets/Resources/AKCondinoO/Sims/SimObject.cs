@@ -25,7 +25,7 @@ namespace AKCondinoO.Sims{
           position=sO.transform.position;
           localScale=sO.transform.localScale;
           if(SimObjectSpawner.Singleton!=null){
-           SimObjectSpawner.Singleton.persistentDataCache[sO.id.Value]=this;
+           SimObjectSpawner.Singleton.OnPersistentDataUpdated(sO);
           }
          }
          public override string ToString(){

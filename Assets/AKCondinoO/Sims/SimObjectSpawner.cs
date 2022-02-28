@@ -217,11 +217,11 @@ namespace AKCondinoO.Sims{
         [SerializeField]int       DEBUG_LOAD_SIM_OBJECTS_AT_CHUNK=0;
         [SerializeField]bool      DEBUG_LOAD_SIM_OBJECTS=false;
         internal readonly Dictionary<(Type simType,ulong number),SimObject.PersistentData>persistentDataAliveUpdating=new Dictionary<(Type,ulong),SimObject.PersistentData>();
-        internal readonly Dictionary<(Type simType,ulong number),(SimActor.PersistentStats statsTree,
-                                                                  SimActor.PersistentSkills skillTree,
+        internal readonly Dictionary<(Type simType,ulong number),(SimActor.PersistentStats     stats    ,
+                                                                  SimActor.PersistentSkills    skills   ,
                                                                   SimActor.PersistentInventory inventory,
                                                                   SimActor.PersistentEquipment equipment,
-                                                                  SimActor.PersistentMemories Memories)>persistentSimActorDataAliveUpdating=new Dictionary<(Type,ulong),(SimActor.PersistentStats,SimActor.PersistentSkills,SimActor.PersistentInventory,SimActor.PersistentEquipment,SimActor.PersistentMemories)>();
+                                                                  SimActor.PersistentMemories  memories )>persistentSimActorDataAliveUpdating=new Dictionary<(Type,ulong),(SimActor.PersistentStats,SimActor.PersistentSkills,SimActor.PersistentInventory,SimActor.PersistentEquipment,SimActor.PersistentMemories)>();
          readonly Dictionary<(Type simType,ulong number),float>persistentDataTimeToLive=new Dictionary<(Type,ulong),float>();
           readonly List<(Type simType,ulong number)>persistentDataTimeToLiveIds=new List<(Type,ulong)>();
         internal readonly Dictionary<Type,ulong>ids=new Dictionary<Type,ulong>();
@@ -301,11 +301,11 @@ namespace AKCondinoO.Sims{
          }
         }
         internal void OnPersistentSimActorDataUpdated(SimActor sA){
-         var persistentSimActorData=(sA.persistentStats,
-                                     sA.persistentSkills,
+         var persistentSimActorData=(sA.persistentStats    ,
+                                     sA.persistentSkills   ,
                                      sA.persistentInventory,
                                      sA.persistentEquipment,
-                                     sA.persistentMemories);
+                                     sA.persistentMemories );
          persistentSimActorDataAliveUpdating[sA.id.Value]=persistentSimActorData;
          if(persistentDataLoadingBG.gameSimActorDataNotInFileKeepCached[sA.id.Value.simType].TryGetValue(sA.id.Value.number,out var oldPersistentSimActorData)){
             persistentDataLoadingBG.gameSimActorDataNotInFileKeepCached[sA.id.Value.simType].TryUpdate  (sA.id.Value.number,persistentSimActorData,oldPersistentSimActorData);
@@ -423,6 +423,7 @@ namespace AKCondinoO.Sims{
           internal readonly Dictionary<(Type simType,ulong number),SimActor.PersistentSkills>persistentSkills=new Dictionary<(Type,ulong),SimActor.PersistentSkills>();
           internal readonly Dictionary<(Type simType,ulong number),SimActor.PersistentInventory>persistentInventory=new Dictionary<(Type,ulong),SimActor.PersistentInventory>();
           internal readonly Dictionary<(Type simType,ulong number),SimActor.PersistentEquipment>persistentEquipment=new Dictionary<(Type,ulong),SimActor.PersistentEquipment>();
+          internal readonly Dictionary<(Type simType,ulong number),SimActor.PersistentMemories>persistentMemories=new Dictionary<(Type,ulong),SimActor.PersistentMemories>();
          internal SpawnData(){
           at=new List<(Vector3,Vector3,Vector3,Type,ulong?)>(1);
          }
@@ -528,11 +529,11 @@ namespace AKCondinoO.Sims{
               SimActor.PersistentEquipment persistentEquipment,
               SimActor.PersistentMemories persistentMemories)persistentSimActorData;
              //  TO DO: usar valores carregados de arquivo ou inicializar valores no sA.
-             persistentSimActorData=(sA.persistentStats,
-                                     sA.persistentSkills,
+             persistentSimActorData=(sA.persistentStats    ,
+                                     sA.persistentSkills   ,
                                      sA.persistentInventory,
                                      sA.persistentEquipment,
-                                     sA.persistentMemories);
+                                     sA.persistentMemories );
              persistentSimActorDataAliveUpdating[id]=persistentSimActorData;
              if(added){
               persistentDataLoadingBG.gameSimActorDataNotInFileKeepCached[id.simType][id.number]=persistentSimActorData;
@@ -553,6 +554,9 @@ namespace AKCondinoO.Sims{
            toSpawn.persistentData.Clear();
            toSpawn.persistentStats.Clear();
            toSpawn.persistentSkills.Clear();
+           toSpawn.persistentInventory.Clear();
+           toSpawn.persistentEquipment.Clear();
+           toSpawn.persistentMemories.Clear();
            toSpawn.dequeued=true;
           }
           if(anySpawn){

@@ -10,24 +10,24 @@ using UnityEngine.AI;
 using static AKCondinoO.Voxels.VoxelSystem;
 namespace AKCondinoO.Sims.Actors{
     internal class SimActor:SimObject{
-        internal PersistentStatsTree persistentStatsTree;
-        internal struct PersistentStatsTree{
+        internal PersistentStats persistentStats;
+        internal struct PersistentStats{
          public override string ToString(){
-          return string.Format(en,"persistentStatsTree={{ }}");
+          return string.Format(en,"persistentStats={{ }}");
          }
-         internal static PersistentStatsTree Parse(string s){
-          PersistentStatsTree persistentStatsTree=new PersistentStatsTree();
-          return persistentStatsTree;
+         internal static PersistentStats Parse(string s){
+          PersistentStats persistentStats=new PersistentStats();
+          return persistentStats;
          }
         }
-        internal PersistentSkillTree persistentSkillTree;
-        internal struct PersistentSkillTree{
+        internal PersistentSkills persistentSkills;
+        internal struct PersistentSkills{
          public override string ToString(){
-          return string.Format(en,"persistentSkillTree={{ }}");
+          return string.Format(en,"persistentSkills={{ }}");
          }
-         internal static PersistentSkillTree Parse(string s){
-          PersistentSkillTree persistentSkillTree=new PersistentSkillTree();
-          return persistentSkillTree;
+         internal static PersistentSkills Parse(string s){
+          PersistentSkills persistentSkills=new PersistentSkills();
+          return persistentSkills;
          }
         }
         internal PersistentInventory persistentInventory;
@@ -50,14 +50,14 @@ namespace AKCondinoO.Sims.Actors{
           return persistentEquipment;
          }
         }
-        internal PersistentAIMyState persistentAIMyState;
-        internal struct PersistentAIMyState{
+        internal PersistentMemories persistentMemories;
+        internal struct PersistentMemories{
          public override string ToString(){
-          return string.Format(en,"persistentAIMyState={{ }}");
+          return string.Format(en,"persistentMemories={{ }}");
          }
-         internal static PersistentAIMyState Parse(string s){
-          PersistentAIMyState persistentAIMyState=new PersistentAIMyState();
-          return persistentAIMyState;
+         internal static PersistentMemories Parse(string s){
+          PersistentMemories persistentMemories=new PersistentMemories();
+          return persistentMemories;
          }
         }
         internal CharacterController characterController;

@@ -116,6 +116,19 @@ namespace AKCondinoO.Sims{
            persistentDataSavingBGThread.simActorDataFileStreamWriter[t][4]=new StreamWriter(simActorDataFileStream);
            persistentDataSavingBGThread.simActorDataFileStreamReader[t][4]=new StreamReader(simActorDataFileStream);
             persistentDataLoadingBG.gameSimActorDataNotInFileKeepCached[t]=new ConcurrentDictionary<ulong,(PersistentStatsTree,PersistentSkillTree,PersistentInventory,PersistentEquipment,PersistentAIMyState)>();
+            FileStream simActorDataLoadFileStream;
+            persistentDataLoadingBGThread.simActorDataFileStream[t]=new FileStream[5];
+            persistentDataLoadingBGThread.simActorDataFileStreamReader[t]=new StreamReader[5];
+            persistentDataLoadingBGThread.simActorDataFileStream[t][0]=simActorDataLoadFileStream=new FileStream(statsTreeSaveFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
+            persistentDataLoadingBGThread.simActorDataFileStreamReader[t][0]=new StreamReader(simActorDataLoadFileStream);
+            persistentDataLoadingBGThread.simActorDataFileStream[t][1]=simActorDataLoadFileStream=new FileStream(skillTreeSaveFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
+            persistentDataLoadingBGThread.simActorDataFileStreamReader[t][1]=new StreamReader(simActorDataLoadFileStream);
+            persistentDataLoadingBGThread.simActorDataFileStream[t][2]=simActorDataLoadFileStream=new FileStream(inventorySaveFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
+            persistentDataLoadingBGThread.simActorDataFileStreamReader[t][2]=new StreamReader(simActorDataLoadFileStream);
+            persistentDataLoadingBGThread.simActorDataFileStream[t][3]=simActorDataLoadFileStream=new FileStream(equipmentSaveFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
+            persistentDataLoadingBGThread.simActorDataFileStreamReader[t][3]=new StreamReader(simActorDataLoadFileStream);
+            persistentDataLoadingBGThread.simActorDataFileStream[t][4]=simActorDataLoadFileStream=new FileStream(AIMyStateSaveFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
+            persistentDataLoadingBGThread.simActorDataFileStreamReader[t][4]=new StreamReader(simActorDataLoadFileStream);
           }
          }
          SpawnQueue.Clear();
@@ -399,6 +412,8 @@ namespace AKCondinoO.Sims{
          internal readonly List<(Vector3 position,Vector3 rotation,Vector3 scale,Type type,ulong?id)>at;
          internal readonly HashSet<(Type simType,ulong number)>useSpecificIds=new HashSet<(Type,ulong)>();
          internal readonly Dictionary<(Type simType,ulong number),SimObject.PersistentData>persistentData=new Dictionary<(Type,ulong),SimObject.PersistentData>();
+          internal readonly Dictionary<(Type simType,ulong number),SimActor.PersistentStatsTree>persistentStatsTree=new Dictionary<(Type,ulong),SimActor.PersistentStatsTree>();
+          internal readonly Dictionary<(Type simType,ulong number),SimActor.PersistentSkillTree>persistentSkillTree=new Dictionary<(Type,ulong),SimActor.PersistentSkillTree>();
          internal SpawnData(){
           at=new List<(Vector3,Vector3,Vector3,Type,ulong?)>(1);
          }
@@ -527,6 +542,8 @@ namespace AKCondinoO.Sims{
            toSpawn.at.Clear();
            toSpawn.useSpecificIds.Clear();
            toSpawn.persistentData.Clear();
+           toSpawn.persistentStatsTree.Clear();
+           toSpawn.persistentSkillTree.Clear();
            toSpawn.dequeued=true;
           }
           if(anySpawn){
@@ -1024,6 +1041,12 @@ namespace AKCondinoO.Sims{
           internal readonly Dictionary<Type,StreamReader>fileStreamReader=new Dictionary<Type,StreamReader>();            
          internal readonly Dictionary<Type,FileStream[]>simActorDataFileStream=new Dictionary<Type,FileStream[]>();
           internal readonly Dictionary<Type,StreamReader[]>simActorDataFileStreamReader=new Dictionary<Type,StreamReader[]>();
+         readonly Dictionary<Type,List<ulong>>simActorDataToLoadIdLists=new Dictionary<Type,List<ulong>>();
+         protected override void Cleanup(){
+          foreach(var kvp in simActorDataToLoadIdLists){
+           kvp.Value.Clear();
+          }
+         }
          protected override void Execute(){
           container.output.dequeued=false;
           lock(simObjectSpawnSynchronization){
@@ -1074,6 +1097,12 @@ namespace AKCondinoO.Sims{
                 string persistentDataString=simObjectString.Substring(persistentDataStringStart,persistentDataStringEnd-persistentDataStringStart);
                 SimObject.PersistentData persistentData=SimObject.PersistentData.Parse(persistentDataString);
                 Load(outputId,ref persistentData);
+                if(simActorDataFileStream.ContainsKey(outputId.simType)){
+                 if(!simActorDataToLoadIdLists.ContainsKey(outputId.simType)){
+                  simActorDataToLoadIdLists.Add(outputId.simType,new List<ulong>());
+                 }
+                 simActorDataToLoadIdLists[outputId.simType].Add(outputId.number);
+                }
                }
                simObjectStringStart=simObjectStringEnd;
               }
@@ -1093,6 +1122,54 @@ namespace AKCondinoO.Sims{
              container.output.persistentData.Add(outputId,persistentData);
              container.output.at.Add((persistentData.position,persistentData.rotation.eulerAngles,persistentData.localScale,outputId.simType,outputId.number));
             }
+           }
+           foreach(var typeSimActorDataToLoadIdListPair in simActorDataToLoadIdLists){Type t=typeSimActorDataToLoadIdListPair.Key;var idList=typeSimActorDataToLoadIdListPair.Value;
+            #region persistentStatsTree
+            FileStream fileStream=simActorDataFileStream[t][0];
+            StreamReader fileStreamReader=simActorDataFileStreamReader[t][0];
+            fileStream.Position=0L;
+            fileStreamReader.DiscardBufferedData();
+            string line;
+            while((line=fileStreamReader.ReadLine())!=null){
+             if(string.IsNullOrEmpty(line)){continue;}
+             int idStringStart=line.IndexOf("id=")+3;
+             int idStringEnd=line.IndexOf(" ,",idStringStart);
+             ulong id=ulong.Parse(line.Substring(idStringStart,idStringEnd-idStringStart));
+             (Type simType,ulong number)outputId=(t,id);
+             if(idList.Contains(id)&&!container.output.persistentStatsTree.ContainsKey(outputId)){
+              int persistentStatsTreeStringStart=idStringEnd+2;
+              persistentStatsTreeStringStart=line.IndexOf("persistentStatsTree=",persistentStatsTreeStringStart);
+              if(persistentStatsTreeStringStart>=0){
+               int persistentStatsTreeStringEnd=line.IndexOf("} ",persistentStatsTreeStringStart)+2;
+               string persistentStatsTreeString=line.Substring(persistentStatsTreeStringStart,persistentStatsTreeStringEnd-persistentStatsTreeStringStart);
+               SimActor.PersistentStatsTree persistentStatsTree=SimActor.PersistentStatsTree.Parse(persistentStatsTreeString);
+               container.output.persistentStatsTree.Add(outputId,persistentStatsTree);
+              }
+             }
+            }
+            #endregion
+            #region persistentSkillTree
+            fileStream=simActorDataFileStream[t][1];
+            fileStreamReader=simActorDataFileStreamReader[t][1];
+            fileStream.Position=0L;
+            fileStreamReader.DiscardBufferedData();
+            while((line=fileStreamReader.ReadLine())!=null){
+             if(string.IsNullOrEmpty(line)){continue;}
+             int idStringStart=line.IndexOf("id=")+3;
+             int idStringEnd=line.IndexOf(" ,",idStringStart);
+             ulong id=ulong.Parse(line.Substring(idStringStart,idStringEnd-idStringStart));
+             (Type simType,ulong number)outputId=(t,id);
+             if(idList.Contains(id)&&!container.output.persistentSkillTree.ContainsKey(outputId)){
+              int persistentSkillTreeStringStart=idStringEnd+2;
+              persistentSkillTreeStringStart=line.IndexOf("persistentSkillTree=",persistentSkillTreeStringStart);
+              if(persistentSkillTreeStringStart>=0){
+               int persistentSkillTreeStringEnd=line.IndexOf("} ",persistentSkillTreeStringStart)+2;
+               string persistentSkillTreeString=line.Substring(persistentSkillTreeStringStart,persistentSkillTreeStringEnd-persistentSkillTreeStringStart);
+               SimActor.PersistentSkillTree persistentSkillTree=SimActor.PersistentSkillTree.Parse(persistentSkillTreeString);
+              }
+             }
+            }
+            #endregion
            }
           }
            container.specificIdsToLoad.Clear();

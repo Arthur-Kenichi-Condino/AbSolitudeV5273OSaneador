@@ -15,11 +15,19 @@ namespace AKCondinoO.Sims.Actors{
          public override string ToString(){
           return string.Format(en,"persistentStatsTree={{ }}");
          }
+         internal static PersistentStatsTree Parse(string s){
+          PersistentStatsTree persistentStatsTree=new PersistentStatsTree();
+          return persistentStatsTree;
+         }
         }
         internal PersistentSkillTree persistentSkillTree;
         internal struct PersistentSkillTree{
          public override string ToString(){
           return string.Format(en,"persistentSkillTree={{ }}");
+         }
+         internal static PersistentSkillTree Parse(string s){
+          PersistentSkillTree persistentSkillTree=new PersistentSkillTree();
+          return persistentSkillTree;
          }
         }
         internal PersistentInventory persistentInventory;
@@ -27,17 +35,29 @@ namespace AKCondinoO.Sims.Actors{
          public override string ToString(){
           return string.Format(en,"persistentInventory={{ }}");
          }
+         internal static PersistentInventory Parse(string s){
+          PersistentInventory persistentInventory=new PersistentInventory();
+          return persistentInventory;
+         }
         }
         internal PersistentEquipment persistentEquipment;
         internal struct PersistentEquipment{
          public override string ToString(){
           return string.Format(en,"persistentEquipment={{ }}");
          }
+         internal static PersistentEquipment Parse(string s){
+          PersistentEquipment persistentEquipment=new PersistentEquipment();
+          return persistentEquipment;
+         }
         }
         internal PersistentAIMyState persistentAIMyState;
         internal struct PersistentAIMyState{
          public override string ToString(){
           return string.Format(en,"persistentAIMyState={{ }}");
+         }
+         internal static PersistentAIMyState Parse(string s){
+          PersistentAIMyState persistentAIMyState=new PersistentAIMyState();
+          return persistentAIMyState;
          }
         }
         internal CharacterController characterController;

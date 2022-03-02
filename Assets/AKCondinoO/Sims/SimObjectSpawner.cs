@@ -523,17 +523,17 @@ namespace AKCondinoO.Sims{
             }
             persistentDataAliveUpdating[id]=persistentData;
             if(sO is SimActor sA){
-             (SimActor.PersistentStats persistentStats,
-              SimActor.PersistentSkills persistentSkills,
+             (SimActor.PersistentStats     persistentStats    ,
+              SimActor.PersistentSkills    persistentSkills   ,
               SimActor.PersistentInventory persistentInventory,
               SimActor.PersistentEquipment persistentEquipment,
-              SimActor.PersistentMemories persistentMemories)persistentSimActorData;
-             //  TO DO: usar valores carregados de arquivo ou inicializar valores no sA.
-             persistentSimActorData=(sA.persistentStats    ,
-                                     sA.persistentSkills   ,
-                                     sA.persistentInventory,
-                                     sA.persistentEquipment,
-                                     sA.persistentMemories );
+              SimActor.PersistentMemories  persistentMemories )persistentSimActorData;
+             //  usar valores carregados de arquivo ou inicializar valores no sA.
+             persistentSimActorData=(sA.persistentStats    =toSpawn.persistentStats    .TryGetValue(id,out var loadedPersistentStats    )?sA.ValidatePersistentStats    (loadedPersistentStats    ):sA.NewPersistentStats    (),
+                                     sA.persistentSkills   =toSpawn.persistentSkills   .TryGetValue(id,out var loadedPersistentSkills   )?sA.ValidatePersistentSkills   (loadedPersistentSkills   ):sA.NewPersistentSkills   (),
+                                     sA.persistentInventory=toSpawn.persistentInventory.TryGetValue(id,out var loadedPersistentInventory)?sA.ValidatePersistentInventory(loadedPersistentInventory):sA.NewPersistentInventory(),
+                                     sA.persistentEquipment=toSpawn.persistentEquipment.TryGetValue(id,out var loadedPersistentEquipment)?sA.ValidatePersistentEquipment(loadedPersistentEquipment):sA.NewPersistentEquipment(),
+                                     sA.persistentMemories =toSpawn.persistentMemories .TryGetValue(id,out var loadedPersistentMemories )?sA.ValidatePersistentMemories (loadedPersistentMemories ):sA.NewPersistentMemories ());
              persistentSimActorDataAliveUpdating[id]=persistentSimActorData;
              if(added){
               persistentDataLoadingBG.gameSimActorDataNotInFileKeepCached[id.simType][id.number]=persistentSimActorData;
@@ -1183,6 +1183,23 @@ namespace AKCondinoO.Sims{
               }
              }
             }
+            #endregion
+            #region persistentInventory
+            fileStream=simActorDataFileStream[t][2];
+            fileStreamReader=simActorDataFileStreamReader[t][2];
+            fileStream.Position=0L;
+            fileStreamReader.DiscardBufferedData();
+            while((line=fileStreamReader.ReadLine())!=null){
+             if(string.IsNullOrEmpty(line)){continue;}
+             int idStringStart=line.IndexOf("id=")+3;
+             int idStringEnd=line.IndexOf(" ,",idStringStart);
+             ulong id=ulong.Parse(line.Substring(idStringStart,idStringEnd-idStringStart));
+             (Type simType,ulong number)outputId=(t,id);
+             if(idList.Contains(id)&&!container.output.persistentInventory.ContainsKey(outputId)){
+             }
+            }
+            #endregion
+            #region persistentEquipment
             #endregion
            }
           }

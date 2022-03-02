@@ -10,6 +10,7 @@ using UnityEngine.AI;
 using static AKCondinoO.Voxels.VoxelSystem;
 namespace AKCondinoO.Sims.Actors{
     internal class SimActor:SimObject{
+        #region persistentStats
         internal PersistentStats persistentStats;
         internal struct PersistentStats{
          public override string ToString(){
@@ -20,6 +21,15 @@ namespace AKCondinoO.Sims.Actors{
           return persistentStats;
          }
         }
+        internal virtual PersistentStats NewPersistentStats(){
+         PersistentStats newPersistentStats=new PersistentStats();
+         return newPersistentStats;
+        }
+        internal virtual PersistentStats ValidatePersistentStats(PersistentStats loadedPersistentStats){
+         return loadedPersistentStats;
+        }
+        #endregion
+        #region persistentSkills
         internal PersistentSkills persistentSkills;
         internal struct PersistentSkills{
          public override string ToString(){
@@ -30,6 +40,15 @@ namespace AKCondinoO.Sims.Actors{
           return persistentSkills;
          }
         }
+        internal virtual PersistentSkills NewPersistentSkills(){
+         PersistentSkills newPersistentSkills=new PersistentSkills();
+         return newPersistentSkills;
+        }
+        internal virtual PersistentSkills ValidatePersistentSkills(PersistentSkills loadedPersistentSkills){
+         return loadedPersistentSkills;
+        }
+        #endregion
+        #region persistentInventory
         internal PersistentInventory persistentInventory;
         internal struct PersistentInventory{
          public override string ToString(){
@@ -40,6 +59,15 @@ namespace AKCondinoO.Sims.Actors{
           return persistentInventory;
          }
         }
+        internal virtual PersistentInventory NewPersistentInventory(){
+         PersistentInventory newPersistentInventory=new PersistentInventory();
+         return newPersistentInventory;
+        }
+        internal virtual PersistentInventory ValidatePersistentInventory(PersistentInventory loadedPersistentInventory){
+         return loadedPersistentInventory;
+        }
+        #endregion
+        #region persistentEquipment
         internal PersistentEquipment persistentEquipment;
         internal struct PersistentEquipment{
          public override string ToString(){
@@ -50,6 +78,15 @@ namespace AKCondinoO.Sims.Actors{
           return persistentEquipment;
          }
         }
+        internal virtual PersistentEquipment NewPersistentEquipment(){
+         PersistentEquipment newPersistentEquipment=new PersistentEquipment();
+         return newPersistentEquipment;
+        }
+        internal virtual PersistentEquipment ValidatePersistentEquipment(PersistentEquipment loadedPersistentEquipment){
+         return loadedPersistentEquipment;
+        }
+        #endregion
+        #region persistentMemories
         internal PersistentMemories persistentMemories;
         internal struct PersistentMemories{
          public override string ToString(){
@@ -60,6 +97,14 @@ namespace AKCondinoO.Sims.Actors{
           return persistentMemories;
          }
         }
+        internal virtual PersistentMemories NewPersistentMemories(){
+         PersistentMemories newPersistentMemories=new PersistentMemories();
+         return newPersistentMemories;
+        }
+        internal virtual PersistentMemories ValidatePersistentMemories(PersistentMemories loadedPersistentMemories){
+         return loadedPersistentMemories;
+        }
+        #endregion
         internal CharacterController characterController;
         internal NavMeshAgent navMeshAgent;
         internal NavMeshQueryFilter navMeshQueryFilter;

@@ -95,11 +95,11 @@ namespace AKCondinoO.Sims{
            persistentDataSavingBGThread.simActorDataFileStream[t]=new FileStream[5];
            persistentDataSavingBGThread.simActorDataFileStreamWriter[t]=new StreamWriter[5];
            persistentDataSavingBGThread.simActorDataFileStreamReader[t]=new StreamReader[5];
-           string statsTreeSaveFile=string.Format("{0}{1}{2}{3}",Core.savePath,t,"_statsTree",".txt");
+           string statsTreeSaveFile=string.Format("{0}{1}{2}{3}",Core.savePath,t,"_stats",".txt");
            persistentDataSavingBGThread.simActorDataFileStream[t][0]=simActorDataFileStream=new FileStream(statsTreeSaveFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
            persistentDataSavingBGThread.simActorDataFileStreamWriter[t][0]=new StreamWriter(simActorDataFileStream);
            persistentDataSavingBGThread.simActorDataFileStreamReader[t][0]=new StreamReader(simActorDataFileStream);
-           string skillTreeSaveFile=string.Format("{0}{1}{2}{3}",Core.savePath,t,"_skillTree",".txt");
+           string skillTreeSaveFile=string.Format("{0}{1}{2}{3}",Core.savePath,t,"_skills",".txt");
            persistentDataSavingBGThread.simActorDataFileStream[t][1]=simActorDataFileStream=new FileStream(skillTreeSaveFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
            persistentDataSavingBGThread.simActorDataFileStreamWriter[t][1]=new StreamWriter(simActorDataFileStream);
            persistentDataSavingBGThread.simActorDataFileStreamReader[t][1]=new StreamReader(simActorDataFileStream);
@@ -111,7 +111,7 @@ namespace AKCondinoO.Sims{
            persistentDataSavingBGThread.simActorDataFileStream[t][3]=simActorDataFileStream=new FileStream(equipmentSaveFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
            persistentDataSavingBGThread.simActorDataFileStreamWriter[t][3]=new StreamWriter(simActorDataFileStream);
            persistentDataSavingBGThread.simActorDataFileStreamReader[t][3]=new StreamReader(simActorDataFileStream);
-           string MemoriesSaveFile=string.Format("{0}{1}{2}{3}",Core.savePath,t,"_Memories",".txt");
+           string MemoriesSaveFile=string.Format("{0}{1}{2}{3}",Core.savePath,t,"_memories",".txt");
            persistentDataSavingBGThread.simActorDataFileStream[t][4]=simActorDataFileStream=new FileStream(MemoriesSaveFile,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.ReadWrite);
            persistentDataSavingBGThread.simActorDataFileStreamWriter[t][4]=new StreamWriter(simActorDataFileStream);
            persistentDataSavingBGThread.simActorDataFileStreamReader[t][4]=new StreamReader(simActorDataFileStream);

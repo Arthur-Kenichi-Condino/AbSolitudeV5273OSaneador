@@ -310,6 +310,7 @@ namespace AKCondinoO.Voxels{
         internal VoxelTerrain[]terrain;
         internal readonly VoxelTerrain.MarchingCubesMultithreaded[]marchingCubesBGThreads=new VoxelTerrain.MarchingCubesMultithreaded[Environment.ProcessorCount];
         internal readonly VoxelTerrain.AddSimObjectsMultithreaded[]addSimObjectsBGThreads=new VoxelTerrain.AddSimObjectsMultithreaded[Environment.ProcessorCount];
+        internal readonly VoxelWater.WaterMarchingCubesMultithreaded[]waterBGThreads=new VoxelWater.WaterMarchingCubesMultithreaded[Environment.ProcessorCount];
         internal static string addedSimObjectsFile;
         internal static string editsFile;
         #region Awake
@@ -323,6 +324,7 @@ namespace AKCondinoO.Voxels{
          VoxelTerrain.marchingCubesExecutionCount=0;
          VoxelTerrain.MarchingCubesMultithreaded.Stop=false;for(int i=0;i<marchingCubesBGThreads.Length;++i){marchingCubesBGThreads[i]=new VoxelTerrain.MarchingCubesMultithreaded();}
          VoxelTerrain.AddSimObjectsMultithreaded.Stop=false;for(int i=0;i<addSimObjectsBGThreads.Length;++i){addSimObjectsBGThreads[i]=new VoxelTerrain.AddSimObjectsMultithreaded();}
+         VoxelWater.WaterMarchingCubesMultithreaded.Stop=false;for(int i=0;i<waterBGThreads.Length;++i){waterBGThreads[i]=new VoxelWater.WaterMarchingCubesMultithreaded();}
          TerrainEditingMultithreaded.Stop=false;terrainEditingBGThread=new TerrainEditingMultithreaded();
          StartCoroutine(ProceduralGenerationFollowUpCoroutine());
         }
@@ -346,6 +348,11 @@ namespace AKCondinoO.Voxels{
          VoxelTerrain.AddSimObjectsMultithreaded.Stop=true;for(int i=0;i<addSimObjectsBGThreads.Length;++i){addSimObjectsBGThreads[i].Wait();
           addSimObjectsBGThreads[i].addedSimObjectsFileStreamWriter.Dispose();
           addSimObjectsBGThreads[i].addedSimObjectsFileStreamReader.Dispose();
+         }
+         if(VoxelWater.WaterMarchingCubesMultithreaded.Clear()!=0){
+          //Logger.Error("water MarchingCubes tasks will stop with pending work");
+         }
+         VoxelWater.WaterMarchingCubesMultithreaded.Stop=true;for(int i=0;i<waterBGThreads.Length;++i){waterBGThreads[i].Wait();
          }
          terrainEditingBG.IsCompleted(terrainEditingBGThread.IsRunning,-1);
          if(TerrainEditingMultithreaded.Clear()!=0){

@@ -16,9 +16,9 @@ namespace AKCondinoO.Voxels{
         internal Vector2Int cnkRgn;
         internal        int cnkIdx;
         void Awake(){
-         container=new WaterMarchingCubesBackgroundContainer(this);
+         flowingBG=new WaterMarchingCubesBackgroundContainer(this);
         }
-        internal WaterMarchingCubesBackgroundContainer container;
+        internal WaterMarchingCubesBackgroundContainer flowingBG;
         internal class WaterMarchingCubesBackgroundContainer:BackgroundContainer{
          internal readonly VoxelWater water;
          internal bool firstCall=true;

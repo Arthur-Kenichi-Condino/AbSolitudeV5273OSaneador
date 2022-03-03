@@ -81,6 +81,7 @@ namespace AKCondinoO.Voxels{
          if(addSimObjectsBG.GetGroundHits.IsCreated)addSimObjectsBG.GetGroundHits.Dispose();
          addSimObjectsBG.rotationModifierPerlin.Dispose();
           addSimObjectsBG.scaleModifierPerlin  .Dispose();
+         water.flowingBG.IsCompleted(VoxelSystem.Singleton.waterBGThreads[0].IsRunning,-1);
         }
         Vector2Int cCoord;
         Vector2Int cnkRgn;
@@ -309,6 +310,8 @@ namespace AKCondinoO.Voxels{
          addingSimObjects=true;
         }
         bool OnWaterUpdate(){
+         if(water.flowingBG.IsCompleted(VoxelSystem.Singleton.waterBGThreads[0].IsRunning)){
+         }
          return false;
         }
         internal readonly AddSimObjectsBackgroundContainer addSimObjectsBG=new AddSimObjectsBackgroundContainer();

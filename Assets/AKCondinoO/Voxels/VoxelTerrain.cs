@@ -101,6 +101,7 @@ namespace AKCondinoO.Voxels{
          pendingEditChanges=true;
          waterUpdateFlag=true;
         }
+        bool updatingWater;
         bool waterUpdateFlag;
         bool addingSimObjects;
         bool waitingBakeJob;
@@ -108,26 +109,31 @@ namespace AKCondinoO.Voxels{
         bool pendingMovement;
         bool pendingEditChanges;
         internal void ManualUpdate(){
-            if(addingSimObjects){
-                AddingSimObjectsSubroutine();
-            }else if(!addingSimObjects){
-                if(waitingBakeJob&&OnMeshBaked()){
-                   waitingBakeJob=false;
-                    OnAddingSimObjects();
-                }else if(!waitingBakeJob){
-                    if(waitingMarchingCubes&&OnMeshDataSet()){
-                       waitingMarchingCubes=false;
-                        OnBakingMesh();
-                    }else if(!waitingMarchingCubes){
-                        if(pendingMovement&&OnApplyingMovement()){
-                           pendingMovement=false;
-                            OnMovementApplied();
-                        }else if(pendingEditChanges&&OnPushingEditChanges()){
-                                 pendingEditChanges=false;
-                            OnEditChangesPushed();
-                        }else if(!pendingEditChanges&&!pendingMovement){
-                            if(waterUpdateFlag&&OnWaterUpdate()){
-                               waterUpdateFlag=false;
+            if(updatingWater&&OnWaterUpdated()){
+               updatingWater=false;
+            }else if(!updatingWater){
+                if(addingSimObjects){
+                    AddingSimObjectsSubroutine();
+                }else if(!addingSimObjects){
+                    if(waitingBakeJob&&OnMeshBaked()){
+                       waitingBakeJob=false;
+                        OnAddingSimObjects();
+                    }else if(!waitingBakeJob){
+                        if(waitingMarchingCubes&&OnMeshDataSet()){
+                           waitingMarchingCubes=false;
+                            OnBakingMesh();
+                        }else if(!waitingMarchingCubes){
+                            if(pendingMovement&&OnApplyingMovement()){
+                               pendingMovement=false;
+                                OnMovementApplied();
+                            }else if(pendingEditChanges&&OnPushingEditChanges()){
+                                     pendingEditChanges=false;
+                                OnEditChangesPushed();
+                            }else if(!pendingEditChanges&&!pendingMovement){
+                                if(waterUpdateFlag&&OnUpdateWater()){
+                                   waterUpdateFlag=false;
+                                    OnUpdatingWater();
+                                }
                             }
                         }
                     }
@@ -309,8 +315,18 @@ namespace AKCondinoO.Voxels{
         void OnAddingSimObjects(){
          addingSimObjects=true;
         }
-        bool OnWaterUpdate(){
+        bool OnUpdateWater(){
          if(water.flowingBG.IsCompleted(VoxelSystem.Singleton.waterBGThreads[0].IsRunning)){
+          return true;
+         }
+         return false;
+        }
+        void OnUpdatingWater(){
+         updatingWater=true;
+        }
+        bool OnWaterUpdated(){
+         if(water.flowingBG.IsCompleted(VoxelSystem.Singleton.waterBGThreads[0].IsRunning)){
+          return true;
          }
          return false;
         }

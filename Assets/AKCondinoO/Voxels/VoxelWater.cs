@@ -1,3 +1,6 @@
+#if UNITY_EDITOR
+    #define ENABLE_DEBUG_LOG
+#endif
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -46,6 +49,7 @@ namespace AKCondinoO.Voxels{
          protected override void Cleanup(){
          }
          protected override void Execute(){
+          Logger.Debug("water flow Execute");
           if(container.firstCall||container.cnkIdx!=container.water.cnkIdx){
            lock(container.water.syn){
             container.firstCall=false;

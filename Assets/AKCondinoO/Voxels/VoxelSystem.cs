@@ -83,6 +83,7 @@ namespace AKCondinoO.Voxels{
             }
         #endregion
         internal const double IsoLevel=-50.0d;
+        #region Terrain
         internal enum MaterialId:ushort{
          Air=0,//  Default value
          Bedrock=1,//  Indestrutível
@@ -296,6 +297,14 @@ namespace AKCondinoO.Voxels{
           }
          }
         }
+        #endregion 
+        #region Water
+        internal struct WaterVoxel{
+         internal double Density;
+         internal bool   Sleeping;
+         internal double Absorbing;
+        }
+        #endregion 
         [SerializeField]internal int marchingCubesExecutionCountLimit=7;
         internal static readonly Biome biome=new Biome();
         internal VoxelTerrain[]terrain;
@@ -346,6 +355,7 @@ namespace AKCondinoO.Voxels{
          terrainEditingBGThread.editsFileStreamWriter.Dispose();
          terrainEditingBGThread.editsFileStreamReader.Dispose();
          biome.DisposeModules();
+         waterActive.Clear();
          if(Singleton==this){Singleton=null;}
         }
         internal readonly SortedDictionary<int,NavMeshBuildSource>navMeshSources=new SortedDictionary<int,NavMeshBuildSource>();
@@ -378,6 +388,8 @@ namespace AKCondinoO.Voxels{
           }
          );
         }
+        [SerializeField]bool    DEBUG_ADD_WATER_SOURCE;
+        [SerializeField]Vector3 DEBUG_ADD_WATER_SOURCE_AT=new Vector3(0,40,0);
         [SerializeField]bool                                       DEBUG_EDIT=false;
         [SerializeField]Vector3                                    DEBUG_EDIT_AT=new Vector3Int(0,40,0);
         [SerializeField]TerrainEditingBackgroundContainer.EditMode DEBUG_EDIT_MODE=TerrainEditingBackgroundContainer.EditMode.Cube;
@@ -389,6 +401,7 @@ namespace AKCondinoO.Voxels{
         int maxConnections=1;
         internal readonly LinkedList<VoxelTerrain>terrainPool=new LinkedList<VoxelTerrain>();
          internal readonly Dictionary<int,VoxelTerrain>terrainActive=new Dictionary<int,VoxelTerrain>();
+          internal static readonly ConcurrentDictionary<int,VoxelWater>waterActive=new ConcurrentDictionary<int,VoxelWater>();
         bool terrainEditingRequested;
         void Update(){
          if(terrain==null){
@@ -399,7 +412,7 @@ namespace AKCondinoO.Voxels{
           terrain=new VoxelTerrain[poolSize];
           for(int i=0;i<terrain.Length;++i){
            VoxelTerrain cnk;
-           terrain[i]=cnk=Instantiate(PrefabVoxelTerrain,transform);
+           terrain[i]=cnk=Instantiate(PrefabVoxelTerrain);
            terrainSynchronization.Add(cnk,cnk.synchronizer);
            terrain[i].OnInstantiated();
            cnk.expropriated=terrainPool.AddLast(cnk);
@@ -513,10 +526,12 @@ namespace AKCondinoO.Voxels{
              bool firstCall=cnk.cnkIdx==null;
              if(cnk.cnkIdx!=null&&terrainActive.ContainsKey(cnk.cnkIdx.Value)){
               terrainActive.Remove(cnk.cnkIdx.Value);
+              waterActive.TryRemove(cnk.cnkIdx.Value,out _);
              }
              terrainActive.Add(cnkIdx1,cnk);
              cnk.cnkIdx=cnkIdx1;
              cnk.OncCoordChanged(cCoord1,firstCall);
+             waterActive[cnkIdx1]=cnk.water;
             }else{
              if(cnk.expropriated!=null){
               terrainPool.Remove(cnk.expropriated);

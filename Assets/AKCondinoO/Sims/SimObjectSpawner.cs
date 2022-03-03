@@ -503,7 +503,7 @@ namespace AKCondinoO.Sims{
              sO.pooled=null;
               gO=sO.gameObject;
             }else{
-             gO=Instantiate(SimObjectPrefabs[at.type],transform);
+             gO=Instantiate(SimObjectPrefabs[at.type]);
               sO=gO.GetComponent<SimObject>();
              simObjectSyncsPendingAddToSynchronization.Add(sO,sO.synchronizer);
             }
@@ -1196,6 +1196,8 @@ namespace AKCondinoO.Sims{
              ulong id=ulong.Parse(line.Substring(idStringStart,idStringEnd-idStringStart));
              (Type simType,ulong number)outputId=(t,id);
              if(idList.Contains(id)&&!container.output.persistentInventory.ContainsKey(outputId)){
+              int persistentInventoryStringStart=idStringEnd+2;
+              persistentInventoryStringStart=line.IndexOf("persistentInventory=",persistentInventoryStringStart);
              }
             }
             #endregion

@@ -20,6 +20,7 @@ using static AKCondinoO.Voxels.VoxelSystem.TerrainEditingMultithreaded;
 using static AKCondinoO.Voxels.VoxelTerrain.MarchingCubesBackgroundContainer;
 namespace AKCondinoO.Voxels{
     internal class VoxelTerrain:MonoBehaviour{
+        internal VoxelWater water;
         internal readonly object synchronizer=new object();
         internal Bounds worldBounds=new Bounds(Vector3.zero,new Vector3(Width,Height,Depth));
         MeshFilter filter;
@@ -35,6 +36,7 @@ namespace AKCondinoO.Voxels{
         NavMeshBuildSource navMeshSource;
         NavMeshBuildMarkup navMeshMarkup;
         void Awake(){
+         water=GetComponentInChildren<VoxelWater>();
          mesh=new Mesh(){
           bounds=worldBounds,
          };
@@ -89,10 +91,16 @@ namespace AKCondinoO.Voxels{
           cnkRgn=cCoordTocnkRgn(cCoord);
           pendingMovement=true;
          }
+         water.cCoord=cCoord;
+         water.cnkRgn=cnkRgn;
+         water.cnkIdx=cnkIdx.Value;
+         waterUpdateFlag=true;
         }
         internal void OnEdited(){
          pendingEditChanges=true;
+         waterUpdateFlag=true;
         }
+        bool waterUpdateFlag;
         bool addingSimObjects;
         bool waitingBakeJob;
         bool waitingMarchingCubes;
@@ -116,6 +124,10 @@ namespace AKCondinoO.Voxels{
                         }else if(pendingEditChanges&&OnPushingEditChanges()){
                                  pendingEditChanges=false;
                             OnEditChangesPushed();
+                        }else if(!pendingEditChanges&&!pendingMovement){
+                            if(waterUpdateFlag&&OnWaterUpdate()){
+                               waterUpdateFlag=false;
+                            }
                         }
                     }
                 }
@@ -295,6 +307,9 @@ namespace AKCondinoO.Voxels{
         }
         void OnAddingSimObjects(){
          addingSimObjects=true;
+        }
+        bool OnWaterUpdate(){
+         return false;
         }
         internal readonly AddSimObjectsBackgroundContainer addSimObjectsBG=new AddSimObjectsBackgroundContainer();
         internal class AddSimObjectsBackgroundContainer:BackgroundContainer{

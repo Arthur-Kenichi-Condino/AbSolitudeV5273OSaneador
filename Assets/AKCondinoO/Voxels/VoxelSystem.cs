@@ -324,6 +324,7 @@ namespace AKCondinoO.Voxels{
          VoxelTerrain.marchingCubesExecutionCount=0;
          VoxelTerrain.MarchingCubesMultithreaded.Stop=false;for(int i=0;i<marchingCubesBGThreads.Length;++i){marchingCubesBGThreads[i]=new VoxelTerrain.MarchingCubesMultithreaded();}
          VoxelTerrain.AddSimObjectsMultithreaded.Stop=false;for(int i=0;i<addSimObjectsBGThreads.Length;++i){addSimObjectsBGThreads[i]=new VoxelTerrain.AddSimObjectsMultithreaded();}
+         VoxelTerrain.waterMarchingCubesExecutionCount=0;
          VoxelWater.WaterMarchingCubesMultithreaded.Stop=false;for(int i=0;i<waterBGThreads.Length;++i){waterBGThreads[i]=new VoxelWater.WaterMarchingCubesMultithreaded();}
          TerrainEditingMultithreaded.Stop=false;terrainEditingBGThread=new TerrainEditingMultithreaded();
          StartCoroutine(ProceduralGenerationFollowUpCoroutine());

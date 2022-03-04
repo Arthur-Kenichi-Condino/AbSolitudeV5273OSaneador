@@ -101,6 +101,8 @@ namespace AKCondinoO.Voxels{
          pendingEditChanges=true;
          waterUpdateFlag=true;
         }
+        float waterUpdateInterval=.125f;
+         float waterUpdateTimer=0f;
         internal bool hasPhysics;
         bool updatingWater;
         bool waterUpdateFlag;
@@ -110,6 +112,9 @@ namespace AKCondinoO.Voxels{
         bool pendingMovement;
         bool pendingEditChanges;
         internal void ManualUpdate(){
+         if(waterUpdateTimer>0f){
+            waterUpdateTimer-=Time.deltaTime;
+         }
             if(updatingWater&&OnWaterUpdated()){
                updatingWater=false;
             }else if(!updatingWater){
@@ -319,8 +324,10 @@ namespace AKCondinoO.Voxels{
         void OnAddingSimObjects(){
          addingSimObjects=true;
         }
+        internal static int waterMarchingCubesExecutionCount=0;
         bool OnUpdateWater(){
-         if(water.flowingBG.IsCompleted(VoxelSystem.Singleton.waterBGThreads[0].IsRunning)){
+         if(waterUpdateTimer<=0f&&water.flowingBG.IsCompleted(VoxelSystem.Singleton.waterBGThreads[0].IsRunning)){
+            waterUpdateTimer=waterUpdateInterval;
           //VoxelWater.WaterMarchingCubesMultithreaded.Schedule(water.flowingBG);
           return true;
          }

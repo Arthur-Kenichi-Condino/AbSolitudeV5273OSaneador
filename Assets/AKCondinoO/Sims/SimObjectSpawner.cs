@@ -395,7 +395,7 @@ namespace AKCondinoO.Sims{
            persistentDataLoadingBG.inputcnkIdx.Add(DEBUG_LOAD_SIM_OBJECTS_AT_CHUNK);
           }
           foreach(int cnkIdx in cnkIdxToLoad){
-           if(VoxelSystem.Singleton.terrainActive.ContainsKey(cnkIdx)){
+           if(VoxelSystem.Singleton.terrainActive.TryGetValue(cnkIdx,out VoxelTerrain cnk)&&cnk.hasPhysics){
             persistentDataLoadingBG.inputcnkIdx.Add(cnkIdx);
            }
           }

@@ -321,7 +321,7 @@ namespace AKCondinoO.Voxels{
         }
         bool OnUpdateWater(){
          if(water.flowingBG.IsCompleted(VoxelSystem.Singleton.waterBGThreads[0].IsRunning)){
-          VoxelWater.WaterMarchingCubesMultithreaded.Schedule(water.flowingBG);
+          //VoxelWater.WaterMarchingCubesMultithreaded.Schedule(water.flowingBG);
           return true;
          }
          return false;

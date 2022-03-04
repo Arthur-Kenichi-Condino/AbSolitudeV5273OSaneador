@@ -101,6 +101,7 @@ namespace AKCondinoO.Voxels{
          pendingEditChanges=true;
          waterUpdateFlag=true;
         }
+        internal bool hasPhysics;
         bool updatingWater;
         bool waterUpdateFlag;
         bool addingSimObjects;
@@ -234,6 +235,7 @@ namespace AKCondinoO.Voxels{
           return false;
          }
          if(marchingCubesBG.IsCompleted(VoxelSystem.Singleton.marchingCubesBGThreads[0].IsRunning)){
+          hasPhysics=false;
           worldBounds.center=transform.position=new Vector3(cnkRgn.x,0,cnkRgn.y);
           navMeshSource.transform=transform.localToWorldMatrix;
           marchingCubesBG.cCoord=cCoord;
@@ -250,6 +252,7 @@ namespace AKCondinoO.Voxels{
         }
         bool OnPushingEditChanges(){
          if(marchingCubesBG.IsCompleted(VoxelSystem.Singleton.marchingCubesBGThreads[0].IsRunning)){
+          hasPhysics=false;
           MarchingCubesMultithreaded.Schedule(marchingCubesBG);
           return true;
          }
@@ -302,6 +305,7 @@ namespace AKCondinoO.Voxels{
           bakeJobHandle.Complete();
           meshCollider.sharedMesh=null;
           meshCollider.sharedMesh=mesh;
+          hasPhysics=true;
           VoxelSystem.Singleton.navMeshSources[gameObject.GetInstanceID()]=navMeshSource;
           VoxelSystem.Singleton.navMeshMarkups[gameObject.GetInstanceID()]=navMeshMarkup;
           VoxelSystem.Singleton.navMeshSourcesCollectionChanged=true;
@@ -317,6 +321,7 @@ namespace AKCondinoO.Voxels{
         }
         bool OnUpdateWater(){
          if(water.flowingBG.IsCompleted(VoxelSystem.Singleton.waterBGThreads[0].IsRunning)){
+          VoxelWater.WaterMarchingCubesMultithreaded.Schedule(water.flowingBG);
           return true;
          }
          return false;

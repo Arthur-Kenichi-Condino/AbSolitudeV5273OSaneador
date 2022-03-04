@@ -93,6 +93,9 @@ namespace AKCondinoO.Sims{
         internal virtual void OnActivated(){
          EnableInteractions();
          TransformBoundsVertices();
+         safePosition=transform.position;
+         safeRotation=transform.rotation;
+         safeScale=transform.localScale;
          transform.hasChanged=false;
         }
         internal void OnUnplaceRequest(){
@@ -111,6 +114,9 @@ namespace AKCondinoO.Sims{
           persistentData.UpdateData(this);
          }
         }
+        Vector3    safePosition;
+        Quaternion safeRotation;
+        Vector3    safeScale;
         bool isOverlapping;
         bool spawnerUnplaceRequest;
         bool spawnerPoolRequest;
@@ -139,14 +145,22 @@ namespace AKCondinoO.Sims{
              v=>{
               Vector2Int cCoord=vecPosTocCoord(v);
               int cnkIdx=GetcnkIdx(cCoord.x,cCoord.y);
-              return!VoxelSystem.Singleton.terrainActive.ContainsKey(cnkIdx);
+              return!VoxelSystem.Singleton.terrainActive.TryGetValue(cnkIdx,out VoxelTerrain cnk)||!cnk.hasPhysics;
              }
             )
            ){
+              transform.position=safePosition;
+              transform.rotation=safeRotation;
+              transform.localScale=safeScale;
+              persistentData.UpdateData(this);
+              TransformBoundsVertices();
               DisableInteractions();
               SimObjectSpawner.Singleton.DespawnQueue.Enqueue(this);
            }
          }
+         safePosition=transform.position;
+         safeRotation=transform.rotation;
+         safeScale=transform.localScale;
          transform.hasChanged=false;
         }
         internal bool interactionsEnabled;

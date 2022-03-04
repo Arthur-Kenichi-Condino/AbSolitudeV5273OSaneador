@@ -11,6 +11,7 @@ using UnityEngine;
 using static AKCondinoO.Voxels.VoxelSystem;
 namespace AKCondinoO.Voxels{
     internal class VoxelWater:MonoBehaviour{
+        internal VoxelTerrain terrain;
         internal readonly object syn=new object(); 
         internal readonly ConcurrentDictionary<int,WaterVoxel>voxels=new ConcurrentDictionary<int,WaterVoxel>();
          internal readonly ConcurrentDictionary<Vector3Int,double>absorbing=new ConcurrentDictionary<Vector3Int,double>();
@@ -61,6 +62,11 @@ namespace AKCondinoO.Voxels{
             container.water.spreading.Clear();
            }
           }
+          if      (container.result==2){
+           container.result=1;
+          }else if(container.result==1){
+           container.result=0;
+          }
           Vector3Int vCoord1;
           for(vCoord1=new Vector3Int();vCoord1.y<Height;vCoord1.y++){
           for(vCoord1.x=0             ;vCoord1.x<Width ;vCoord1.x++){
@@ -86,11 +92,49 @@ namespace AKCondinoO.Voxels{
             }
            }
           }}}
+          if(container.water.absorbing.Count>0||
+             container.water.spreading.Count>0
+          ){
+           container.result=2;
+          }
           foreach(var voxel in container.water.absorbing){
           } 
           foreach(var voxel in container.water.spreading){
+           Vector3Int vCoord2=voxel.Key;
+           if(container.water.spreading.TryRemove(vCoord2,out double density)){
+            Vector3Int d_vCoord=new Vector3Int(vCoord2.x,vCoord2.y-1,vCoord2.z);
+            bool waterfall=VerticalSpread(d_vCoord,d_vCoord.y>=0);
+            bool VerticalSpread(Vector3Int v_vCoord,bool insideAxisLength){
+             return false;
+            }
+           }
           }
          }
         }
+        #if UNITY_EDITOR
+            void OnDrawGizmos(){
+             DrawVoxelsDensity();
+            }
+            void DrawVoxelsDensity(){
+             if(voxels.Count<=0){
+              return;
+             }
+             Vector3Int vCoord1;
+             for(vCoord1=new Vector3Int();vCoord1.y<Height;vCoord1.y++){
+             for(vCoord1.x=0             ;vCoord1.x<Width ;vCoord1.x++){
+             for(vCoord1.z=0             ;vCoord1.z<Depth ;vCoord1.z++){
+              Vector3Int vCoord2=vCoord1;
+              int vxlIdx2=GetvxlIdx(vCoord2.x,vCoord2.y,vCoord2.z);
+              if(voxels.TryGetValue(vxlIdx2,out WaterVoxel voxel)){double density=voxel.Density;
+               if(-density<IsoLevel){
+                Gizmos.color=Color.white;
+               }else{
+                Gizmos.color=Color.black;
+               }
+               Gizmos.DrawCube(transform.position+vCoord2-trianglePosAdj-(Vector3.one*.5f),Vector3.one*(float)(density*.01d));
+              }
+             }}}
+            }
+        #endif
     }
 }

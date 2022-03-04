@@ -44,6 +44,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   marchingCubesExecutionCountLimit: 7
+  waterMarchingCubesExecutionCountLimit: 3
+  DEBUG_ADD_WATER_SOURCE: 0
+  DEBUG_ADD_WATER_SOURCE_AT: {x: 0, y: 40, z: 0}
   DEBUG_EDIT: 0
   DEBUG_EDIT_AT: {x: 0, y: 40, z: 0}
   DEBUG_EDIT_MODE: 0

@@ -37,6 +37,7 @@ namespace AKCondinoO.Voxels{
         NavMeshBuildMarkup navMeshMarkup;
         void Awake(){
          water=GetComponentInChildren<VoxelWater>();
+         water.terrain=this;
          mesh=new Mesh(){
           bounds=worldBounds,
          };
@@ -99,6 +100,9 @@ namespace AKCondinoO.Voxels{
         }
         internal void OnEdited(){
          pendingEditChanges=true;
+         waterUpdateFlag=true;
+        }
+        internal void OnWaterEdited(){
          waterUpdateFlag=true;
         }
         float waterUpdateInterval=.125f;
@@ -326,9 +330,13 @@ namespace AKCondinoO.Voxels{
         }
         internal static int waterMarchingCubesExecutionCount=0;
         bool OnUpdateWater(){
+         if(waterMarchingCubesExecutionCount>=VoxelSystem.Singleton.waterMarchingCubesExecutionCountLimit){
+          return false;
+         }
          if(waterUpdateTimer<=0f&&water.flowingBG.IsCompleted(VoxelSystem.Singleton.waterBGThreads[0].IsRunning)){
             waterUpdateTimer=waterUpdateInterval;
-          //VoxelWater.WaterMarchingCubesMultithreaded.Schedule(water.flowingBG);
+          waterMarchingCubesExecutionCount++;
+          VoxelWater.WaterMarchingCubesMultithreaded.Schedule(water.flowingBG);
           return true;
          }
          return false;
@@ -338,6 +346,7 @@ namespace AKCondinoO.Voxels{
         }
         bool OnWaterUpdated(){
          if(water.flowingBG.IsCompleted(VoxelSystem.Singleton.waterBGThreads[0].IsRunning)){
+          waterMarchingCubesExecutionCount=Mathf.Max(0,--waterMarchingCubesExecutionCount);
           return true;
          }
          return false;

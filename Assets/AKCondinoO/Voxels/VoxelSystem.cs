@@ -303,9 +303,13 @@ namespace AKCondinoO.Voxels{
          internal double Density;
          internal bool   Sleeping;
          internal double Absorbing;
+         internal WaterVoxel(double d,bool s,double a){
+          Density=d;Sleeping=s;Absorbing=a;
+         }
         }
         #endregion 
         [SerializeField]internal int marchingCubesExecutionCountLimit=7;
+         [SerializeField]internal int waterMarchingCubesExecutionCountLimit=3;
         internal static readonly Biome biome=new Biome();
         internal VoxelTerrain[]terrain;
         internal readonly VoxelTerrain.MarchingCubesMultithreaded[]marchingCubesBGThreads=new VoxelTerrain.MarchingCubesMultithreaded[Environment.ProcessorCount];
@@ -396,8 +400,6 @@ namespace AKCondinoO.Voxels{
           }
          );
         }
-        [SerializeField]bool    DEBUG_ADD_WATER_SOURCE;
-        [SerializeField]Vector3 DEBUG_ADD_WATER_SOURCE_AT=new Vector3(0,40,0);
         [SerializeField]bool                                       DEBUG_EDIT=false;
         [SerializeField]Vector3                                    DEBUG_EDIT_AT=new Vector3Int(0,40,0);
         [SerializeField]TerrainEditingBackgroundContainer.EditMode DEBUG_EDIT_MODE=TerrainEditingBackgroundContainer.EditMode.Cube;
@@ -405,6 +407,8 @@ namespace AKCondinoO.Voxels{
         [SerializeField]double                                     DEBUG_EDIT_DENSITY=100.0;
         [SerializeField]MaterialId                                 DEBUG_EDIT_MATERIAL_ID=MaterialId.Dirt;
         [SerializeField]int                                        DEBUG_EDIT_SMOOTHNESS=5;
+        [SerializeField]bool    DEBUG_ADD_WATER_SOURCE;
+        [SerializeField]Vector3 DEBUG_ADD_WATER_SOURCE_AT=new Vector3(0,40,0);
         [SerializeField]VoxelTerrain PrefabVoxelTerrain;
         int maxConnections=1;
         internal readonly LinkedList<VoxelTerrain>terrainPool=new LinkedList<VoxelTerrain>();
@@ -447,6 +451,18 @@ namespace AKCondinoO.Voxels{
          }else if(!terrainEditingRequested){
           if(terrainEditingRequests.Count>0&&OnTerrainEditingRequestsPush()){
            OnTerrainEditingRequestsPushed();
+          }
+         }
+         if(DEBUG_ADD_WATER_SOURCE){
+            DEBUG_ADD_WATER_SOURCE=false;
+          Vector2Int cCoord2=vecPosTocCoord(DEBUG_ADD_WATER_SOURCE_AT);
+          int cnkIdx2=GetcnkIdx(cCoord2.x,cCoord2.y);
+          if(waterActive.TryGetValue(cnkIdx2,out VoxelWater wcnk)){
+           Vector3Int vCoord2=vecPosTovCoord(DEBUG_ADD_WATER_SOURCE_AT);
+           int vxlIdx2=GetvxlIdx(vCoord2.x,vCoord2.y,vCoord2.z);
+           //  não fazer isto fora de área de testes:
+           wcnk.voxels[vxlIdx2]=new WaterVoxel(100d,false,0d);
+           wcnk.terrain.OnWaterEdited();
           }
          }
         }

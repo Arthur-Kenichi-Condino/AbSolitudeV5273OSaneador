@@ -105,7 +105,61 @@ namespace AKCondinoO.Voxels{
             Vector3Int d_vCoord=new Vector3Int(vCoord2.x,vCoord2.y-1,vCoord2.z);
             bool waterfall=VerticalSpread(d_vCoord,d_vCoord.y>=0);
             bool VerticalSpread(Vector3Int v_vCoord,bool insideAxisLength){
+             if(insideAxisLength){
+              int v_vxlIdx=GetvxlIdx(v_vCoord.x,v_vCoord.y,v_vCoord.z);
+              return Spread(v_vxlIdx);
+             }
              return false;
+             bool Spread(int v_vxlIdx){
+              bool spread=true;
+              WaterVoxel newValue=new WaterVoxel(density,false,0d);
+              if(newValue.Density<30d){
+               return false;
+              }
+              container.water.voxels.AddOrUpdate(v_vxlIdx,newValue,
+               (key,oldValue)=>{
+                if(oldValue.Density>=newValue.Density){
+                 return oldValue;
+                }
+                newValue.Absorbing=Math.Max(oldValue.Absorbing,newValue.Absorbing);
+                return newValue;
+               }
+              );
+              return spread;
+             }
+            }
+            if(!waterfall){
+             Vector3Int r_vCoord=new Vector3Int(vCoord2.x+1,vCoord2.y,vCoord2.z);HorizontalSpread(r_vCoord,r_vCoord.x<Width);
+             Vector3Int l_vCoord=new Vector3Int(vCoord2.x-1,vCoord2.y,vCoord2.z);HorizontalSpread(l_vCoord,l_vCoord.x>=0   );
+             Vector3Int f_vCoord=new Vector3Int(vCoord2.x,vCoord2.y,vCoord2.z+1);HorizontalSpread(f_vCoord,f_vCoord.z<Depth);
+             Vector3Int b_vCoord=new Vector3Int(vCoord2.x,vCoord2.y,vCoord2.z-1);HorizontalSpread(b_vCoord,b_vCoord.z>=0   );
+             bool HorizontalSpread(Vector3Int h_vCoord,bool insideAxisLength){
+              if(insideAxisLength){
+               int h_vxlIdx=GetvxlIdx(h_vCoord.x,h_vCoord.y,h_vCoord.z);
+               return Spread(h_vxlIdx);
+              }else{
+               //  TO DO: passar pra outros chunks
+               return true;
+              }
+              bool Spread(int h_vxlIdx){
+               bool spread=true;
+               WaterVoxel newValue=new WaterVoxel(density-5d,false,0d);
+               if(newValue.Density<30d){
+                return false;
+               }
+               container.water.voxels.AddOrUpdate(h_vxlIdx,newValue,
+                (key,oldValue)=>{
+                 if(oldValue.Density>=newValue.Density){
+                  spread=false;
+                  return oldValue;
+                 }
+                 newValue.Absorbing=Math.Max(oldValue.Absorbing,newValue.Absorbing);
+                 return newValue;
+                }
+               );
+               return spread;
+              }
+             }
             }
            }
           }

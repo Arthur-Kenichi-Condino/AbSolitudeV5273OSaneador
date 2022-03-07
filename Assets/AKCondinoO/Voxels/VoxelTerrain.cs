@@ -21,6 +21,7 @@ using static AKCondinoO.Voxels.VoxelTerrain.MarchingCubesBackgroundContainer;
 namespace AKCondinoO.Voxels{
     internal class VoxelTerrain:MonoBehaviour{
         internal VoxelWater water;
+        internal readonly Dictionary<int,MaterialId>isInsideSurface=new Dictionary<int,MaterialId>();
         internal readonly object synchronizer=new object();
         internal Bounds worldBounds=new Bounds(Vector3.zero,new Vector3(Width,Height,Depth));
         MeshFilter filter;
@@ -347,6 +348,9 @@ namespace AKCondinoO.Voxels{
         bool OnWaterUpdated(){
          if(water.flowingBG.IsCompleted(VoxelSystem.Singleton.waterBGThreads[0].IsRunning)){
           waterMarchingCubesExecutionCount=Mathf.Max(0,--waterMarchingCubesExecutionCount);
+          if(water.flowingBG.result==2){
+           waterUpdateFlag=true;
+          }
           return true;
          }
          return false;

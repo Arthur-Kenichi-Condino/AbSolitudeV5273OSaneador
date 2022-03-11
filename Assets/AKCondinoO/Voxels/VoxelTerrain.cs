@@ -21,7 +21,6 @@ using static AKCondinoO.Voxels.VoxelTerrain.MarchingCubesBackgroundContainer;
 namespace AKCondinoO.Voxels{
     internal class VoxelTerrain:MonoBehaviour{
         internal VoxelWater water;
-        internal readonly Dictionary<int,MaterialId>isInsideSurface=new Dictionary<int,MaterialId>();
         internal readonly object synchronizer=new object();
         internal Bounds worldBounds=new Bounds(Vector3.zero,new Vector3(Width,Height,Depth));
         MeshFilter filter;
@@ -512,12 +511,17 @@ namespace AKCondinoO.Voxels{
         }
         internal MarchingCubesBackgroundContainer marchingCubesBG;
         internal class MarchingCubesBackgroundContainer:BackgroundContainer{
+         internal readonly Dictionary<int,MaterialId>isInsideSurface=new Dictionary<int,MaterialId>();
+         internal readonly Dictionary<int,MaterialId>[]isInsideSurfaceAtNeighbor=new Dictionary<int,MaterialId>[8];
          internal readonly object voxelSystemSynchronizer;        
          internal Vector2Int cCoord;
          internal Vector2Int cnkRgn;
          internal        int cnkIdx;
          internal MarchingCubesBackgroundContainer(object syn){
           voxelSystemSynchronizer=syn;
+          for(int i=0;i<isInsideSurfaceAtNeighbor.Length;++i){
+           isInsideSurfaceAtNeighbor[i]=new Dictionary<int,MaterialId>();
+          }
          }
          [StructLayout(LayoutKind.Sequential)]internal struct Vertex{
           internal Vector3 pos;
@@ -898,6 +902,14 @@ namespace AKCondinoO.Voxels{
              v2.color=col;
              container.TempVer[idx[j]]=v2;
             }
+           }
+          }
+          lock(container.isInsideSurface){
+           for(int i=0;i<voxels.Length;++i){var voxel=voxels[i];
+           }
+          }
+          lock(container.isInsideSurfaceAtNeighbor){
+           for(int i=0;i<neighbors.Length;++i){
            }
           }
          }

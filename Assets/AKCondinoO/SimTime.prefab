@@ -45,7 +45,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   simDayInRealMinutes: 0.8
-  mainSun: {fileID: 4346533893583131989}
+  mainSun: {fileID: 4346533893583131990}
 --- !u!1 &4346533893583131989
 GameObject:
   m_ObjectHideFlags: 0

@@ -28,8 +28,13 @@ namespace AKCondinoO{
      internal float simTimeOfDay;//  Contagem de segundos total no dia
      internal float simDayOfYear;//  Contagem de dias total no ano
      internal float dayCourse;
-     [SerializeField]internal GameObject mainSun;
+     [SerializeField]internal Light mainSun;
       internal Vector3 mainSunEulerAngles=new Vector3(0f,-90f,0f);
+       float mainSunLightIntensityClearDawn  =.5f;
+       float mainSunLightIntensityClearDay   =1f ;
+       float mainSunLightIntensityClearSunset=.5f;
+       float mainSunLightIntensityClearNight =0f ;
+        float mainSunLightIntensityLerp=0f;
      float skyThicknessClearDawn  =1.7f;
      float skyThicknessClearDay   =1f  ;
      float skyThicknessClearSunset=1.7f;
@@ -40,6 +45,11 @@ namespace AKCondinoO{
      float ambientLightIntensityClearSunset=.5f;
      float ambientLightIntensityClearNight =0f ;
       float ambientLightIntensityLerp=0f;
+       float ambientReflectionsIntensityClearDawn  =.5f;
+       float ambientReflectionsIntensityClearDay   =1f ;
+       float ambientReflectionsIntensityClearSunset=.5f;
+       float ambientReflectionsIntensityClearNight =0f ;
+        float ambientReflectionsIntensityLerp=0f;
      void Update(){        
          simTimeOfDay+=Time.deltaTime*_DAY/(simDayInRealMinutes*_MINUTE);
       if(simTimeOfDay>=_DAY){
@@ -65,10 +75,41 @@ namespace AKCondinoO{
       //  .75f: 18 h
       //  0f: meia-noite
       //  .25f: 6 h
-      if(dayCourse>=.75f||dayCourse<=.25f){
+      if(dayCourse>=0.75f||dayCourse<0.25f){
        RenderSettings.skybox.SetFloat("_AtmosphereThickness",skyThicknessClearNight);
+      }else if(dayCourse>=0.67f&&dayCourse<0.71f){
+       float delta=0.71f-0.67f;
+       skyThicknessLerp=(dayCourse-0.67f)/delta;
+       RenderSettings.skybox.SetFloat("_AtmosphereThickness",Mathf.Lerp(skyThicknessClearDay,skyThicknessClearSunset,skyThicknessLerp));
+      }else if(dayCourse>=0.71f&&dayCourse<0.75f){
+       float delta=0.75f-0.71f;
+       skyThicknessLerp=(dayCourse-0.71f)/delta;
+       RenderSettings.skybox.SetFloat("_AtmosphereThickness",Mathf.Lerp(skyThicknessClearSunset,skyThicknessClearNight,skyThicknessLerp));
+      }else if(dayCourse>=0.25f&&dayCourse<0.29f){
+       float delta=0.29f-0.25f;
+       skyThicknessLerp=(dayCourse-0.25f)/delta;
+       RenderSettings.skybox.SetFloat("_AtmosphereThickness",Mathf.Lerp(skyThicknessClearNight,skyThicknessClearDawn,skyThicknessLerp));
+      }else if(dayCourse>=0.29f&&dayCourse<0.33f){
+       float delta=0.33f-0.29f;
+       skyThicknessLerp=(dayCourse-0.29f)/delta;
+       RenderSettings.skybox.SetFloat("_AtmosphereThickness",Mathf.Lerp(skyThicknessClearDawn,skyThicknessClearDay,skyThicknessLerp));
       }else{
        RenderSettings.skybox.SetFloat("_AtmosphereThickness",skyThicknessClearDay);
+      }
+      if(dayCourse>=0.75f||dayCourse<0.25f){
+       RenderSettings.ambientIntensity=ambientLightIntensityClearNight;
+      }else{
+       RenderSettings.ambientIntensity=ambientLightIntensityClearDay;
+      }
+      if(dayCourse>=0.75f||dayCourse<0.25f){
+       RenderSettings.reflectionIntensity=ambientReflectionsIntensityClearNight;
+      }else{
+       RenderSettings.reflectionIntensity=ambientReflectionsIntensityClearDay;
+      }
+      if(dayCourse>=0.75f||dayCourse<0.25f){
+       mainSun.intensity=mainSunLightIntensityClearNight;
+      }else{
+       mainSun.intensity=mainSunLightIntensityClearDay;
       }
      }
     }

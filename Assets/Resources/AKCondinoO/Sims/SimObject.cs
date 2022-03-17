@@ -222,7 +222,7 @@ namespace AKCondinoO.Sims{
         }
         #if UNITY_EDITOR
         void OnDrawGizmos(){
-         Logger.DrawRotatedBounds(worldBoundsVertices,Color.white);
+         //Logger.DrawRotatedBounds(worldBoundsVertices,Color.white);
         }
         #endif
     }

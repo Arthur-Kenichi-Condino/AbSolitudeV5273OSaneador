@@ -18,6 +18,7 @@ using static AKCondinoO.Voxels.VoxelSystem;
 namespace AKCondinoO.Sims{
     internal class SimObjectSpawner:MonoBehaviour{internal static SimObjectSpawner Singleton;
         [SerializeField]double instantiationMaxExecutionTime=12.0d;
+        [SerializeField]internal bool disableSnappingToSlots=false;
         internal readonly Dictionary<Type,GameObject>SimObjectPrefabs=new Dictionary<Type,GameObject>();
         internal static string idsFile;
         internal static string releasedIdsFile;

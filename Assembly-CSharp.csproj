@@ -70,9 +70,12 @@
     <Compile Include="Assets\Resources\AKCondinoO\Sims\Actors\Homunculi\Homunculus.cs" />
     <Compile Include="Assets\Resources\AKCondinoO\Sims\Trees\Pinus_elliottii_1\Pinus_elliottii_1.cs" />
     <Compile Include="Assets\Resources\AKCondinoO\Sims\Actors\SimActor.cs" />
+    <Compile Include="Assets\AKCondinoO\SimTime.cs" />
     <Compile Include="Assets\AKCondinoO\Core.cs" />
     <Compile Include="Assets\Resources\AKCondinoO\Sims\Actors\Homunculi\Vanilmirth\Vanilmirth.cs" />
-    <Compile Include="Assets\AKCondinoO\SimTime.cs" />
+    <Compile Include="Assets\Resources\AKCondinoO\Sims\Construction\SimConstruction.cs" />
+    <Compile Include="Assets\Resources\AKCondinoO\Sims\Construction\SimFloor.cs" />
+    <Compile Include="Assets\Resources\AKCondinoO\Sims\Construction\Floor10x10x10.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\AKCondinoO\Voxels\VoxelTerrain.shader" />

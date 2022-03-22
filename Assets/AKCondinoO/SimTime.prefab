@@ -44,7 +44,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 786668dbde6b0f948975fba862500853, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  simDayInRealMinutes: 0.8
+  simDayInRealMinutes: 10
   mainSun: {fileID: 4346533893583131990}
 --- !u!1 &4346533893583131989
 GameObject:

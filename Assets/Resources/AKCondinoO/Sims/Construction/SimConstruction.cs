@@ -55,10 +55,12 @@ namespace AKCondinoO.Sims{
            if(collider.CompareTag("SimObjectVolume")){
             if(collider is BoxCollider box){
              Gizmos.color=Color.gray;
-             Gizmos.DrawCube(transform.position+box.center,box.size);
+             Gizmos.matrix=Matrix4x4.TRS(transform.position+box.center,transform.rotation,transform.lossyScale);
+             Gizmos.DrawCube(Vector3.zero,box.size);
             }
            }
           }
+          Gizmos.matrix=Matrix4x4.identity;
          }
         }
         #endif

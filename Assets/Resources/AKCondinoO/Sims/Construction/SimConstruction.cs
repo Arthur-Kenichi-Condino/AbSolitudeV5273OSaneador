@@ -1,5 +1,5 @@
 #if UNITY_EDITOR
-#define ENABLE_DEBUG_LOG
+    #define ENABLE_DEBUG_LOG
 #endif
 using System;
 using System.Collections;
@@ -13,7 +13,6 @@ namespace AKCondinoO.Sims{
          bool snap=(!SimObjectSpawner.Singleton.disableSnappingToSlots&&transform.hasChanged);
          base.ManualUpdate();
          if(snap){
-          Logger.Debug("snap");
           if(snapper is BoxCollider boxSnapper){
            SimConstruction snapped;
            if((snapped=TrySnap(Vector3.forward))!=null||

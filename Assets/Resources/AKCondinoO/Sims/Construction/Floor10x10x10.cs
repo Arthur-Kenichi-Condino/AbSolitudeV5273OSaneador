@@ -1,3 +1,6 @@
+#if UNITY_EDITOR
+    #define ENABLE_DEBUG_LOG
+#endif
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -25,6 +28,7 @@ namespace AKCondinoO.Sims{
        }
        transform.position=closestSnapPos;
        transform.rotation=otherConstruction.transform.rotation;
+       Logger.Debug("snapped");
        Vector3 GetSnapPos(Vector3 dir){
         return otherFloor10x10x10.transform.position+(dir*10f);
        }

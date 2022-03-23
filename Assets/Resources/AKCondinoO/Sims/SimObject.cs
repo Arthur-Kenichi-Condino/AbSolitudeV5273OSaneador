@@ -96,6 +96,9 @@ namespace AKCondinoO.Sims{
          safePosition=transform.position;
          safeRotation=transform.rotation;
          safeScale=transform.localScale;
+         nonOverlappingPosition=transform.position;
+         nonOverlappingRotation=transform.rotation;
+         nonOverlappingScale=transform.localScale;
          transform.hasChanged=false;
         }
         internal void OnUnplaceRequest(){
@@ -118,6 +121,9 @@ namespace AKCondinoO.Sims{
         Quaternion safeRotation;
         Vector3    safeScale;
         bool isOverlapping;
+        protected Vector3    nonOverlappingPosition;
+        protected Quaternion nonOverlappingRotation;
+        protected Vector3    nonOverlappingScale;
         bool spawnerUnplaceRequest;
         bool spawnerPoolRequest;
         internal virtual void ManualUpdate(){

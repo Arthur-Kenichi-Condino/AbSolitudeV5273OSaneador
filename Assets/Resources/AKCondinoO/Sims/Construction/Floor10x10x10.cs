@@ -33,6 +33,7 @@ namespace AKCondinoO.Sims{
         return otherFloor10x10x10.transform.position+(dir*10f);
        }
       }
+      base.SnapTo(otherConstruction);
      }
     }
 }

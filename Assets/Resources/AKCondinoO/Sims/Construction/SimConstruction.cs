@@ -7,34 +7,52 @@ using System.Collections.Generic;
 using UnityEngine;
 namespace AKCondinoO.Sims{
     internal class SimConstruction:SimObject{
+        protected override void Awake(){
+         base.Awake();
+        }
         [SerializeField]Collider snapper;
+        float snapDelay=0.25f;
+        float snapTimer=0f;
         RaycastHit[]snappingRaycastHits=new RaycastHit[8];
-        internal override void ManualUpdate(){
-         bool snap=(!SimObjectSpawner.Singleton.disableSnappingToSlots&&transform.hasChanged);
+        internal override void ManualUpdate(){         
+         bool snap=false;
+         if(!SimObjectSpawner.Singleton.disableSnappingToSlots&&transform.hasChanged){
+          snapTimer=snapDelay;
+         }else if(snapTimer>0f){
+          snapTimer-=Time.deltaTime;
+          if(snapTimer<=0f){
+           snap=true;
+          }
+         }
          base.ManualUpdate();
-         if(snap){
-          if(snapper is BoxCollider boxSnapper){
-           SimConstruction snapped;
-           if((snapped=TrySnap(Vector3.forward))!=null||
-              (snapped=TrySnap(Vector3.back   ))!=null||
-              (snapped=TrySnap(Vector3.right  ))!=null||
-              (snapped=TrySnap(Vector3.left   ))!=null){
-            SnapTo(snapped);
-           }
-           SimConstruction TrySnap(Vector3 dir){
-            int raycastHitsLength=0;
-            while(snappingRaycastHits.Length<=(raycastHitsLength=Physics.BoxCastNonAlloc(transform.position+boxSnapper.center,boxSnapper.bounds.extents,transform.rotation*dir,snappingRaycastHits,transform.rotation,1f))&&raycastHitsLength>0){
-             Array.Resize(ref snappingRaycastHits,raycastHitsLength*2);
+         if(interactionsEnabled){
+          if(snap){
+           if(snapper is BoxCollider boxSnapper){
+            SimConstruction snapped;
+            if((snapped=TrySnap(Vector3.forward))!=null||
+               (snapped=TrySnap(Vector3.back   ))!=null||
+               (snapped=TrySnap(Vector3.right  ))!=null||
+               (snapped=TrySnap(Vector3.left   ))!=null){
+             SnapTo(snapped);
             }
-            SimConstruction sC=null;
-            for(int j=0;j<raycastHitsLength;++j){var raycastHit=snappingRaycastHits[j];
-             if(raycastHit.transform.root!=transform.root){//  it's not myself
-              SnapPrecedence(ref sC,raycastHit.transform.root.GetComponent<SimConstruction>());
+            SimConstruction TrySnap(Vector3 dir){
+             int raycastHitsLength=0;
+             while(snappingRaycastHits.Length<=(raycastHitsLength=Physics.BoxCastNonAlloc(transform.position+boxSnapper.center,boxSnapper.bounds.extents,transform.rotation*dir,snappingRaycastHits,transform.rotation,1f))&&raycastHitsLength>0){
+              Array.Resize(ref snappingRaycastHits,raycastHitsLength*2);
              }
+             SimConstruction sC=null;
+             for(int j=0;j<raycastHitsLength;++j){var raycastHit=snappingRaycastHits[j];
+              if(raycastHit.transform.root!=transform.root){//  it's not myself
+               SnapPrecedence(ref sC,raycastHit.transform.root.GetComponent<SimConstruction>());
+              }
+             }
+             return sC;
             }
-            return sC;
            }
           }
+          nonOverlappingPosition=transform.position;
+          nonOverlappingRotation=transform.rotation;
+          nonOverlappingScale=transform.localScale;
          }
         }
         protected virtual void SnapPrecedence(ref SimConstruction toSnap,SimConstruction otherConstruction){
@@ -42,7 +60,9 @@ namespace AKCondinoO.Sims{
           toSnap=otherConstruction;
          }
         }
+        Collider[]snappingOverlappedColliders=new Collider[8];
         protected virtual void SnapTo(SimConstruction otherConstruction){
+         int overlappingsLength=0;
         }
         #if UNITY_EDITOR
         protected override void OnDrawGizmos(){
@@ -54,7 +74,7 @@ namespace AKCondinoO.Sims{
            if(collider.CompareTag("SimObjectVolume")){
             if(collider is BoxCollider box){
              Gizmos.color=Color.gray;
-             Gizmos.matrix=Matrix4x4.TRS(transform.position+box.center,transform.rotation,transform.lossyScale);
+             Gizmos.matrix=Matrix4x4.TRS(transform.position+box.center,transform.rotation,transform.localScale);
              Gizmos.DrawCube(Vector3.zero,box.size);
             }
            }

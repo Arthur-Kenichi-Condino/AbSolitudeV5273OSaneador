@@ -232,6 +232,8 @@ namespace AKCondinoO.Sims{
          internal readonly Dictionary<(Type simType,ulong number),SimObject>active=new Dictionary<(Type,ulong),SimObject>();
         readonly SpawnData spawnData=new SpawnData();
         readonly HashSet<int>cnkIdxToLoad=new HashSet<int>();
+        float saveDelay=.01f;
+        float saveTimer=0f;
         bool savingPersistentData;
         bool pendingPersistentDataSave;
         bool loadingPersistentData;
@@ -268,13 +270,17 @@ namespace AKCondinoO.Sims{
                 loadingPersistentData=false;
                  //Logger.Debug("spawn loaded data");
              }else if(!loadingPersistentData){
-                 OnPersistentDataTimeToLiveUpdate();
+                 if(saveTimer>0f){
+                    saveTimer-=Time.deltaTime;
+                 }else{
+                     OnPersistentDataTimeToLiveUpdate();
+                 }
                  if(DEBUG_SAVE_PENDING_PERSISTENT_DATA&&OnPendingPersistentDataPushToFile()){
                     DEBUG_SAVE_PENDING_PERSISTENT_DATA=false;
-                    OnPendingPersistentDataPushedToFile();
+                     OnPendingPersistentDataPushedToFile();
                  }else if(pendingPersistentDataSave&&OnPendingPersistentDataPushToFile()){
                           pendingPersistentDataSave=false;
-                    OnPendingPersistentDataPushedToFile();
+                     OnPendingPersistentDataPushedToFile();
                  }else if(!DEBUG_SAVE_PENDING_PERSISTENT_DATA&&!pendingPersistentDataSave){
                      if(DEBUG_LOAD_SIM_OBJECTS&&OnPersistentDataLoad()){
                         DEBUG_LOAD_SIM_OBJECTS=false;
@@ -382,6 +388,7 @@ namespace AKCondinoO.Sims{
         }
         void OnPendingPersistentDataPushedToFile(){
          savingPersistentData=true;
+         saveTimer=saveDelay;
         }
         bool OnPendingPersistentDataSaved(){
          if(persistentDataSavingBG.IsCompleted(persistentDataSavingBGThread.IsRunning)){

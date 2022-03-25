@@ -29,18 +29,18 @@ namespace AKCondinoO.Sims{
           if(snap){
            if(snapper is BoxCollider boxSnapper){
             SimConstruction snapped;
-            if((snapped=TrySnap(Vector3.forward))!=null||
-               (snapped=TrySnap(Vector3.back   ))!=null||
-               (snapped=TrySnap(Vector3.right  ))!=null||
-               (snapped=TrySnap(Vector3.left   ))!=null){
+            if((snapped=TrySnap(Vector3.forward,null   ))!=null|
+               (snapped=TrySnap(Vector3.back   ,snapped))!=null|
+               (snapped=TrySnap(Vector3.right  ,snapped))!=null|
+               (snapped=TrySnap(Vector3.left   ,snapped))!=null){
              SnapTo(snapped);
             }
-            SimConstruction TrySnap(Vector3 dir){
+            SimConstruction TrySnap(Vector3 dir,SimConstruction snapped){
              int raycastHitsLength=0;
-             while(snappingRaycastHits.Length<=(raycastHitsLength=Physics.BoxCastNonAlloc(transform.position+boxSnapper.center,boxSnapper.bounds.extents,transform.rotation*dir,snappingRaycastHits,transform.rotation,1f))&&raycastHitsLength>0){
+             while(snappingRaycastHits.Length<=(raycastHitsLength=Physics.BoxCastNonAlloc(transform.position+boxSnapper.center,boxSnapper.bounds.extents-(Vector3.one*0.0005f),transform.rotation*dir,snappingRaycastHits,transform.rotation,1f))&&raycastHitsLength>0){
               Array.Resize(ref snappingRaycastHits,raycastHitsLength*2);
              }
-             SimConstruction sC=null;
+             SimConstruction sC=snapped;
              for(int j=0;j<raycastHitsLength;++j){var raycastHit=snappingRaycastHits[j];
               if(raycastHit.transform.root!=transform.root){//  it's not myself
                SnapPrecedence(ref sC,raycastHit.transform.root.GetComponent<SimConstruction>());
@@ -62,14 +62,21 @@ namespace AKCondinoO.Sims{
         }
         Collider[]snappingOverlappedColliders=new Collider[8];
         protected virtual void SnapTo(SimConstruction otherConstruction){
-         int overlappingsLength=0;
+         for(int i=0;i<volumeColliders.Count;++i){
+          int overlappingsLength=0;
+          if(volumeColliders[i]is CapsuleCollider capsule){
+          }else if(volumeColliders[i]is BoxCollider box){
+           //while(snappingOverlappedColliders.Length<=(overlappingsLength=Physics.OverlapBoxNonAlloc(,))&&overlappingsLength>0){
+           //}
+          }
+         }
         }
         #if UNITY_EDITOR
         protected override void OnDrawGizmos(){
          DrawColliders();
         }
         void DrawColliders(){
-         if(colliders!=null){
+         if(colliders!=null&&interactionsEnabled){
           foreach(Collider collider in colliders){
            if(collider.CompareTag("SimObjectVolume")){
             if(collider is BoxCollider box){

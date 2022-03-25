@@ -206,14 +206,22 @@ namespace AKCondinoO.Sims{
           int overlappingsLength=0;
           if(volumeColliders[i]is CapsuleCollider capsule){
            var direction=new Vector3{[capsule.direction]=1};
-           var offset=capsule.height/2-capsule.radius;
+           var offset=(capsule.height/2-capsule.radius)-0.001f;
            var localPoint0=capsule.center-direction*offset;
            var localPoint1=capsule.center+direction*offset;
            var point0=transform.TransformPoint(localPoint0);
            var point1=transform.TransformPoint(localPoint1);
-           while(overlappedColliders.Length<=(overlappingsLength=Physics.OverlapCapsuleNonAlloc(point0,point1,capsule.radius,overlappedColliders))&&overlappingsLength>0){
+           while(overlappedColliders.Length<=(overlappingsLength=Physics.OverlapCapsuleNonAlloc(point0,point1,capsule.radius-0.001f,overlappedColliders))&&overlappingsLength>0){
             Array.Resize(ref overlappedColliders,overlappingsLength*2);
            }
+           DetectOverlappings(capsule);
+          }else if(volumeColliders[i]is BoxCollider box){
+           while(overlappedColliders.Length<=(overlappingsLength=Physics.OverlapBoxNonAlloc(transform.position+box.center,box.bounds.extents-(Vector3.one*0.0005f),overlappedColliders,transform.rotation))&&overlappingsLength>0){
+            Array.Resize(ref overlappedColliders,overlappingsLength*2);
+           }
+           DetectOverlappings(box);
+          }
+          void DetectOverlappings(Collider volumeCollider){
            for(int j=0;j<overlappingsLength;++j){var overlapping=overlappedColliders[j];
             if(overlapping.transform.root!=transform.root){//  it's not myself
              SimObject sO;

@@ -66,8 +66,9 @@ namespace AKCondinoO.Sims{
           int overlappingsLength=0;
           if(volumeColliders[i]is CapsuleCollider capsule){
           }else if(volumeColliders[i]is BoxCollider box){
-           //while(snappingOverlappedColliders.Length<=(overlappingsLength=Physics.OverlapBoxNonAlloc(,))&&overlappingsLength>0){
-           //}
+           while(snappingOverlappedColliders.Length<=(overlappingsLength=Physics.OverlapBoxNonAlloc(transform.position+box.center,box.bounds.extents-(Vector3.one*0.0005f),snappingOverlappedColliders,transform.rotation))&&overlappingsLength>0){
+            Array.Resize(ref snappingOverlappedColliders,overlappingsLength*2);
+           }
           }
          }
         }

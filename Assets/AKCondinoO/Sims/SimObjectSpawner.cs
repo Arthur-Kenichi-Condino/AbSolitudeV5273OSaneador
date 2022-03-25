@@ -24,6 +24,7 @@ namespace AKCondinoO.Sims{
         internal static string releasedIdsFile;
         void Awake(){if(Singleton==null){Singleton=this;}else{DestroyImmediate(this);return;}
          Core.Singleton.OnDestroyingCoreEvent+=OnDestroyingCoreEvent;
+         persistentDataSavingBG.persistentDataLoadingBG=persistentDataLoadingBG;
                  idsFile=string.Format("{0}{1}",Core.savePath,        "ids.txt");
          releasedIdsFile=string.Format("{0}{1}",Core.savePath,"releasedIds.txt");
          lock(simObjectSpawnSynchronization){
@@ -260,16 +261,29 @@ namespace AKCondinoO.Sims{
            }
           }
          }
-         if(loadingPersistentData&&OnPersistentDataLoaded()){
-            loadingPersistentData=false;
-             //Logger.Debug("spawn loaded data");
-         }else if(!loadingPersistentData){
-             if(DEBUG_LOAD_SIM_OBJECTS&&OnPersistentDataLoad()){
-                DEBUG_LOAD_SIM_OBJECTS=false;
-                 OnPersistentDataLoading();
-             }else if(cnkIdxToLoad.Count>0&&OnPersistentDataLoad()){
-                      cnkIdxToLoad.Clear();
-                 OnPersistentDataLoading();
+         if(savingPersistentData&&OnPendingPersistentDataSaved()){
+            savingPersistentData=false;
+         }else if(!savingPersistentData){
+             if(loadingPersistentData&&OnPersistentDataLoaded()){
+                loadingPersistentData=false;
+                 //Logger.Debug("spawn loaded data");
+             }else if(!loadingPersistentData){
+                 OnPersistentDataTimeToLiveUpdate();
+                 if(DEBUG_SAVE_PENDING_PERSISTENT_DATA&&OnPendingPersistentDataPushToFile()){
+                    DEBUG_SAVE_PENDING_PERSISTENT_DATA=false;
+                    OnPendingPersistentDataPushedToFile();
+                 }else if(pendingPersistentDataSave&&OnPendingPersistentDataPushToFile()){
+                          pendingPersistentDataSave=false;
+                    OnPendingPersistentDataPushedToFile();
+                 }else if(!DEBUG_SAVE_PENDING_PERSISTENT_DATA&&!pendingPersistentDataSave){
+                     if(DEBUG_LOAD_SIM_OBJECTS&&OnPersistentDataLoad()){
+                        DEBUG_LOAD_SIM_OBJECTS=false;
+                         OnPersistentDataLoading();
+                     }else if(cnkIdxToLoad.Count>0&&OnPersistentDataLoad()){
+                              cnkIdxToLoad.Clear();
+                         OnPersistentDataLoading();
+                     }
+                 }
              }
          }
          foreach(var a in active){var sO=a.Value;
@@ -280,18 +294,6 @@ namespace AKCondinoO.Sims{
          }
          while(DespawnReleaseIdQueue.Count>0){var toDespawnReleaseId=DespawnReleaseIdQueue.Dequeue();
           OnDeactivateReleaseId(toDespawnReleaseId);
-         }
-         OnPersistentDataTimeToLiveUpdate();
-         if(savingPersistentData&&OnPendingPersistentDataSaved()){
-            savingPersistentData=false;
-         }else if(!savingPersistentData){
-             if(DEBUG_SAVE_PENDING_PERSISTENT_DATA&&OnPendingPersistentDataPushToFile()){
-                DEBUG_SAVE_PENDING_PERSISTENT_DATA=false;
-                OnPendingPersistentDataPushedToFile();
-             }else if(pendingPersistentDataSave&&OnPendingPersistentDataPushToFile()){
-                      pendingPersistentDataSave=false;
-                OnPendingPersistentDataPushedToFile();
-             }
          }
          anyPlayerBoundsChanged=false;
         }
@@ -352,23 +354,20 @@ namespace AKCondinoO.Sims{
          }
         }
         void OnPersistentDataTimeToLiveUpdate(){
-         if(persistentDataSavingBG.IsCompleted(persistentDataSavingBGThread.IsRunning)){
-          persistentDataTimeToLiveIds.Clear();
-          persistentDataTimeToLiveIds.AddRange(persistentDataTimeToLive.Keys);
-          for(int i=0;i<persistentDataTimeToLiveIds.Count;++i){
-           var id=persistentDataTimeToLiveIds[i];
-           if((persistentDataTimeToLive[id]-=Time.deltaTime)<0f){
-            SimObject.PersistentData persistentData=persistentDataAliveUpdating[id];
-            if(persistentSimActorDataAliveUpdating.TryGetValue(id,out var persistentSimActorData)){
-             persistentDataSavingBG.gameSimActorDataToSerializeToFile[id.simType][id.number]=persistentSimActorData;
-            }
-            persistentDataSavingBG.gameDataToSerializeToFile[id.simType][id.number]=persistentData;
-                    persistentDataAliveUpdating.Remove(id);
-            persistentSimActorDataAliveUpdating.Remove(id);
-                    persistentDataTimeToLive   .Remove(id);
-            pendingPersistentDataSave=true;
-            persistentDataLoadingBG.gameDataNotInFileKeepCached[id.simType].TryRemove(id.number,out _);
+         persistentDataTimeToLiveIds.Clear();
+         persistentDataTimeToLiveIds.AddRange(persistentDataTimeToLive.Keys);
+         for(int i=0;i<persistentDataTimeToLiveIds.Count;++i){
+          var id=persistentDataTimeToLiveIds[i];
+          if((persistentDataTimeToLive[id]-=Time.deltaTime)<0f){
+           SimObject.PersistentData persistentData=persistentDataAliveUpdating[id];
+           if(persistentSimActorDataAliveUpdating.TryGetValue(id,out var persistentSimActorData)){
+            persistentDataSavingBG.gameSimActorDataToSerializeToFile[id.simType][id.number]=persistentSimActorData;
            }
+           persistentDataSavingBG.gameDataToSerializeToFile[id.simType][id.number]=persistentData;
+                   persistentDataAliveUpdating.Remove(id);
+           persistentSimActorDataAliveUpdating.Remove(id);
+                   persistentDataTimeToLive   .Remove(id);
+           pendingPersistentDataSave=true;
           }
          }
         }
@@ -595,6 +594,7 @@ namespace AKCondinoO.Sims{
         #region saving
         internal readonly PersistentDataSavingBackgroundContainer persistentDataSavingBG=new PersistentDataSavingBackgroundContainer();
         internal class PersistentDataSavingBackgroundContainer:BackgroundContainer{
+         internal PersistentDataLoadingBackgroundContainer persistentDataLoadingBG;
          internal readonly Dictionary<Type,ulong>ids=new Dictionary<Type,ulong>();
          internal readonly Dictionary<Type,List<ulong>>releasedIds=new Dictionary<Type,List<ulong>>();
          internal readonly Dictionary<Type,ConcurrentDictionary<ulong,SimObject.PersistentData>>gameDataToSerializeToFile=new Dictionary<Type,ConcurrentDictionary<ulong,SimObject.PersistentData>>();
@@ -779,6 +779,11 @@ namespace AKCondinoO.Sims{
              }
             }
             foreach(var kvp1 in idPersistentDataListBycnkIdxByType){Type t=kvp1.Key;var idPersistentDataListBycnkIdx=kvp1.Value;
+             foreach(var kvp2 in kvp1.Value){
+              foreach(var kvp3 in kvp2.Value){
+               container.persistentDataLoadingBG.gameDataNotInFileKeepCached[t].TryRemove(kvp3.id,out _);
+              }
+             }
              processedcnkIdx.Clear();
              FileStream fileStream=this.fileStream[t];
              StreamWriter fileStreamWriter=this.fileStreamWriter[t];

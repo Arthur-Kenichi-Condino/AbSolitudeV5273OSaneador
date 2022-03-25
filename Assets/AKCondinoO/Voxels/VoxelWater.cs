@@ -50,7 +50,7 @@ namespace AKCondinoO.Voxels{
          protected override void Cleanup(){
          }
          protected override void Execute(){
-          Logger.Debug("water flow Execute");
+          //Logger.Debug("water flow Execute");
           if(container.firstCall||container.cnkIdx!=container.water.cnkIdx){
            lock(container.water.syn){
             container.firstCall=false;

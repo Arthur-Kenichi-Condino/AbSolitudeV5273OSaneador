@@ -231,9 +231,9 @@ namespace AKCondinoO.Sims{
         internal readonly Dictionary<Type,LinkedList<SimObject>>pool=new Dictionary<Type,LinkedList<SimObject>>();
          internal readonly Dictionary<(Type simType,ulong number),SimObject>active=new Dictionary<(Type,ulong),SimObject>();
         readonly SpawnData spawnData=new SpawnData();
-        readonly HashSet<int>cnkIdxToLoad=new HashSet<int>();
         float saveDelay=.01f;
         float saveTimer=0f;
+        readonly HashSet<int>cnkIdxToLoad=new HashSet<int>();
         bool savingPersistentData;
         bool pendingPersistentDataSave;
         bool loadingPersistentData;
